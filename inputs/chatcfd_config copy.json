@@ -1,0 +1,15 @@
+{
+    "DEEPSEEK_V3_KEY" : "94559eb8-a44b-47e6-b067-5d6a0a9b74ad",
+    "DEEPSEEK_V3_BASE_URL" : "https://ark.cn-beijing.volces.com/api/v3",
+    "DEEPSEEK_V3_MODEL_NAME" : "ep-20250220160954-4dkdj",
+    "V3_temperature":0.7,
+    "DEEPSEEK_R1_KEY" : "94559eb8-a44b-47e6-b067-5d6a0a9b74ad",
+    "DEEPSEEK_R1_BASE_URL" : "https://ark.cn-beijing.volces.com/api/v3",
+    "DEEPSEEK_R1_MODEL_NAME" : "ep-20250302203934-fhd8v",
+    "R1_temperature":0.9,
+    "run_time":3,
+    "OpenFOAM_path":"/usr/lib/openfoam/openfoam2406",
+    "OpenFOAM_tutorial_path":"/home/fane/OpenFOAM/fane-v2406/tutorials",
+    "max_running_test_round":30,
+    "pdf_chunk_d" : 1.5
+}

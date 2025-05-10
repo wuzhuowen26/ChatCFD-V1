@@ -1,0 +1,40 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+
+internalField   uniform (3.6 0 0);
+
+boundaryField
+{
+    cylinder
+    {
+        type            noSlip;
+    }
+    down
+    {
+        type            symmetryPlane;
+    }
+    left
+    {
+        type            fixedValue;
+        value           uniform (3.6 0 0);
+    }
+    right
+    {
+        type            inletOutlet;
+        inletValue      uniform (3.6 0 0);
+        value           uniform (3.6 0 0);
+    }
+    up
+    {
+        type            symmetryPlane;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}

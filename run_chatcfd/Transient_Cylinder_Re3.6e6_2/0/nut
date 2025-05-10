@@ -1,0 +1,23 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      nut;
+}
+
+internalField   uniform 0;
+
+boundaryField
+{
+    cylinder
+    {
+        type            nutkWallFunction;
+        value           uniform 0;
+    }
+    defaultFaces
+    {
+        type            calculated;
+        value           uniform 0;
+    }
+}

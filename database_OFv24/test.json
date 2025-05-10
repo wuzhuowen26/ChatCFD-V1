@@ -1,0 +1,14 @@
+{
+    "case_1": {
+        "case_path": "basic/overPotentialFoam/cylinder/cylinderAndBackground"
+    },
+    "case_2": {
+        "case_path": "basic/overPotentialFoam/cylinder/cylinderMesh"
+    },
+    "case_3": {
+        "case_path": "basic/overPotentialFoam/cylinder/cylinderAndBackground"
+    },
+    "case_4": {
+        "case_path": "basic/overPotentialFoam/cylinder/cylinderMesh"
+    }
+}
