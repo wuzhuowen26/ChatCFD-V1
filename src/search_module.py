@@ -3,6 +3,7 @@ import json
 import requests
 import re
 from bs4 import BeautifulSoup
+from datetime import datetime
 
 from openai import OpenAI           
 from duckduckgo_search import DDGS  # 利用duckduckgo进行网页搜索
@@ -274,7 +275,12 @@ def organize_web_content(error_info: str):
 
     organized_content = get_LLM_response(messages)
     # print(organized_content)
-    print('联网搜索token花费',TOKEN_SEARCH)
+    # print('联网搜索token花费',TOKEN_SEARCH)
+
+    timestamp = datetime.now().isoformat()
+    with open("spend_token/search_token.txt", "a", encoding="utf-8") as f:
+        f.write(f"{timestamp} : {TOKEN_SEARCH}\n")
+
     return organized_content
 
 # 根据网页内容生成建议
@@ -314,7 +320,7 @@ def search_solution(error_info: str, file_dir):
 if __name__ == "__main__":
     # search_solution(error_info="#0 [2] Foam::error:: printStack(Foam::Ostream&)Foam::error:: printStack(Foam::Ostream&")
 
-    dir = "../CFD/cylinder"
+    dir = "CFD/cylinder"
     error_info = """
         --> FOAM FATAL ERROR: 
         Inconsistent number of faces between block pair 2 and 12

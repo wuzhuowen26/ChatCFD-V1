@@ -1,0 +1,40 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      epsilon;
+}
+
+dimensions      [0 2 -3 0 0 0 0];
+
+internalField   uniform 0.001568;
+
+boundaryField
+{
+    left
+    {
+        type            fixedValue;
+        value           uniform 0.001568;
+    }
+    right
+    {
+        type            zeroGradient;
+    }
+    up
+    {
+        type            symmetry;
+    }
+    down
+    {
+        type            symmetry;
+    }
+    cylinder
+    {
+        type            symmetry;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}

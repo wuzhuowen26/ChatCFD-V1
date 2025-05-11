@@ -438,20 +438,32 @@ def analyze_running_error_with_reference_files(running_error, file_name,early_re
 
     case_files = list_case_file(config.OUTPUT_PATH)
 
-    # from search_module import organize_web_content
-    # web_content = organize_web_content(running_error)
-    # # Here are some web pages content [[[ {web_content} ]]] about this error that may help you.
 
-    analyze_running_error_prompt = f'''
-    Analyze the provided OpenFOAM runtime error [[[ {running_error} ]]] to identify the root cause. Give advice on correcting the file { {file_name} } with the file contents as [[[ {file_content} ]]]. The revision must not alter the file to voilate these initial and boundary conditions in the paper [[[ {config.case_ic_bc_from_paper} ]]]. You can refer to these files from OpenFOAM tutorial [[[ {reference_files} ]]] to improve the correction advice.
-    
-    In your response: Provide a step-by-step fix. Ensure the advice addresses the error's technical cause. The advice must be a string.
+    if 0:       # 是否开启联网搜索
+        from search_module import organize_web_content
+        web_content = organize_web_content(running_error)
+        analyze_running_error_prompt = f'''
+        Analyze the provided OpenFOAM runtime error [[[ {running_error} ]]] to identify the root cause. Give advice on correcting the file { {file_name} } with the file contents as [[[ {file_content} ]]]. The revision must not alter the file to voilate these initial and boundary conditions in the paper [[[ {config.case_ic_bc_from_paper} ]]]. You can refer to these files from OpenFOAM tutorial [[[ {reference_files} ]]] to improve the correction advice.
+        Here are some web pages content [[[ {web_content} ]]] about this error that may help you.
+        
+        In your response: Provide a step-by-step fix. Ensure the advice addresses the error's technical cause. The advice must be a string.
 
-    In your response: Absolutely AVOID any elements including but not limited to:
-    - Markdown code block markers (``` or ```)
-    - Extra comments or explanations
-    - Unnecessary empty lines or indentation
-    '''
+        In your response: Absolutely AVOID any elements including but not limited to:
+        - Markdown code block markers (``` or ```)
+        - Extra comments or explanations
+        - Unnecessary empty lines or indentation
+        '''
+    else:
+        analyze_running_error_prompt = f'''
+        Analyze the provided OpenFOAM runtime error [[[ {running_error} ]]] to identify the root cause. Give advice on correcting the file { {file_name} } with the file contents as [[[ {file_content} ]]]. The revision must not alter the file to voilate these initial and boundary conditions in the paper [[[ {config.case_ic_bc_from_paper} ]]]. You can refer to these files from OpenFOAM tutorial [[[ {reference_files} ]]] to improve the correction advice.
+        
+        In your response: Provide a step-by-step fix. Ensure the advice addresses the error's technical cause. The advice must be a string.
+
+        In your response: Absolutely AVOID any elements including but not limited to:
+        - Markdown code block markers (``` or ```)
+        - Extra comments or explanations
+        - Unnecessary empty lines or indentation
+        '''
     
     qa = QA_NoContext_deepseek_R1()
 
@@ -471,15 +483,28 @@ def single_file_corrector2(file_name, advices_for_revision, reference_files):
     with open(file_path, "r", encoding="utf-8") as file:
         file_content = file.read()
 
-    correct_file_prompt = f'''{config.general_prompts} Correct the OpenFOAM case file.
-    Please correct the { {file_name} } file with file contents as { {file_content} } to strictly adhere to the following correction advice { {advices_for_revision} }. Ensure the dimension in [] is correct if the dimension shows in the file content. You must not change any other contents of the file except for the correction advice or dimension in [].
-
-    In your final response after "Here is my response:", absolutely AVOID any elements including but not limited to:
-    - Markdown code block markers (``` or  ```)
-    - Extra comments or explanations
-    '''
+    if 1:       # 是否开启根据参考文件纠错 and 边界条件检查
+        correct_file_prompt = f'''{config.general_prompts} Correct the OpenFOAM case file.
+        Please correct the { {file_name} } file with file contents as { {file_content} } to strictly adhere to the following correction advice { {advices_for_revision} }. Ensure the dimension in [] is correct if the dimension shows in the file content. You must not change any other contents of the file except for the correction advice or dimension in [].
+        You can reference these files from OpenFOAM tutorial { {reference_files} } for formatting.
+        This is the name of the boundary condition and the corresponding type [[{config.boundary_name_and_type}]] for this example. Please ensure that the boundary condition settings in the file comply with it.
+        
+        In your final response after "Here is my response:", absolutely AVOID any elements including but not limited to:
+        - Markdown code block markers (``` or  ```)
+        - Extra comments or explanations
+        '''
+    else:
+        correct_file_prompt = f'''{config.general_prompts} Correct the OpenFOAM case file.
+        Please correct the { {file_name} } file with file contents as { {file_content} } to strictly adhere to the following correction advice { {advices_for_revision} }. Ensure the dimension in [] is correct if the dimension shows in the file content. You must not change any other contents of the file except for the correction advice or dimension in [].
+        
+        In your final response after "Here is my response:", absolutely AVOID any elements including but not limited to:
+        - Markdown code block markers (``` or  ```)
+        - Extra comments or explanations
+        '''
 
     #     # You can reference these files from OpenFOAM tutorial { {reference_files} } for formatting.
+    # 这是根据求解器类型和湍流模型来选择的参考文件{{}}，这是根据算例名称来选择的参考文件{{}}，这两个参考文件是来源不同。你可以根据这两个参考文件来选择一个最合适的参考文件。
+
 
     qa = QA_NoContext_deepseek_V3()
 

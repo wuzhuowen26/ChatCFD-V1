@@ -445,6 +445,9 @@ def main():
                 st.session_state.messages.append({"role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
 
     if st.session_state.file_processed and st.session_state.user_answer_finished and not st.session_state.uploaded_grid:
+        # 保存信息仿真算例设置内容（已经由用户确定）
+        config.simulate_requirement = md_form
+
         st.write("If you don't have further requirement on the case setup. \n**Please upload the mesh of the Fluent .msh format.**")
 
     if st.session_state.uploaded_grid and st.session_state.file_processed and st.session_state.user_answer_finished:

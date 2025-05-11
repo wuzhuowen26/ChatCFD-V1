@@ -1,0 +1,6 @@
+# dynamicCode:
+# SHA1 = 84e034736cc127c6076d6c074f061bbf281f0658
+
+SOURCE += codedFunctionObjectTemplate.C
+
+LIB = $(PWD)/../platforms/$(WM_OPTIONS)/lib/liberror_84e034736cc127c6076d6c074f061bbf281f0658

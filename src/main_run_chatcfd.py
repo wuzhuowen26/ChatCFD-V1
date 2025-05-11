@@ -4,6 +4,8 @@ import json
 import torch
 import os
 
+import check_boundary_module
+
 torch.classes.__path__ = [os.path.join(torch.__path__[0], torch.classes.__file__)]
 
 test_solver = None
@@ -242,9 +244,12 @@ def main(file_name):
                         if file_corrector.analyze_error_repetition(config.error_history):
                             file_corrector.rewrite_file(file_for_revision,reference_files)
                         else:
+                            # 检查网格边界（costant/polyMesh/boundary）
+                            check_boundary_module.check_and_change_boundary(config.simulate_requirement, config.OUTPUT_PATH)
+
                             advices_for_revision = file_corrector.analyze_running_error_with_reference_files(running_error, file_for_revision,early_revision_advice,reference_files)
                             
-                            
+
                             file_corrector.single_file_corrector2(file_for_revision, advices_for_revision, reference_files)
                     else:#添加文件分支
                         file_for_adding = answer_add_new_file_strip

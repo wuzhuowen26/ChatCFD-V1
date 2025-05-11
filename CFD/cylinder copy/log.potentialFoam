@@ -1,0 +1,70 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  10
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+Build  : 10-c4cf895ad8fa
+Exec   : potentialFoam -withFunctionObjects -writePhi -writep
+Date   : May 09 2025
+Time   : 21:29:49
+Host   : "WP"
+PID    : 29473
+I/O    : uncollated
+Case   : /home/hk/hk_project/ChatCFD_to_hk/CFD/cylinder
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Reading velocity field U
+
+Constructing pressure field p
+
+Constructing velocity potential field Phi
+
+No MRF models present
+
+
+Calculating potential flow
+Using dynamicCode for coded error at line 52 in "/home/hk/hk_project/ChatCFD_to_hk/CFD/cylinder/system/controlDict/functions/error"
+Creating new library in "dynamicCode/error/platforms/linux64GccDPInt32Opt/lib/liberror_84e034736cc127c6076d6c074f061bbf281f0658.so"
+"/opt/openfoam10/etc/codeTemplates/dynamicCode/codedFunctionObjectTemplate.C" "/home/hk/hk_project/ChatCFD_to_hk/CFD/cylinder/dynamicCode/error/codedFunctionObjectTemplate.C"
+"/opt/openfoam10/etc/codeTemplates/dynamicCode/codedFunctionObjectTemplate.H" "/home/hk/hk_project/ChatCFD_to_hk/CFD/cylinder/dynamicCode/error/codedFunctionObjectTemplate.H"
+Invoking "wmake -s libso /home/hk/hk_project/ChatCFD_to_hk/CFD/cylinder/dynamicCode/error"
+wmake libso /home/hk/hk_project/ChatCFD_to_hk/CFD/cylinder/dynamicCode/error
+    ln: ./lnInclude
+    wmkdep: codedFunctionObjectTemplate.C
+    Ctoo: codedFunctionObjectTemplate.C
+    ld: /home/hk/hk_project/ChatCFD_to_hk/CFD/cylinder/dynamicCode/error/../platforms/linux64GccDPInt32Opt/lib/liberror_84e034736cc127c6076d6c074f061bbf281f0658.so
+GAMG:  Solving for Phi, Initial residual = 1, Final residual = 0.00959393, No Iterations 7
+GAMG:  Solving for Phi, Initial residual = 0.0186367, Final residual = 0.000125416, No Iterations 4
+GAMG:  Solving for Phi, Initial residual = 0.0014764, Final residual = 1.38634e-05, No Iterations 3
+GAMG:  Solving for Phi, Initial residual = 0.000527588, Final residual = 4.47541e-06, No Iterations 3
+Continuity error = 2.70964e-05
+Interpolated velocity error = 2.59361e-06
+
+Calculating approximate pressure field
+GAMG:  Solving for p, Initial residual = 1, Final residual = 0.00580254, No Iterations 5
+GAMG:  Solving for p, Initial residual = 0.0698007, Final residual = 0.000375569, No Iterations 4
+GAMG:  Solving for p, Initial residual = 0.0179245, Final residual = 0.000145843, No Iterations 3
+GAMG:  Solving for p, Initial residual = 0.00419483, Final residual = 1.6425e-05, No Iterations 4
+Looking up field U
+
+Reading inlet velocity uInfX
+
+U at inlet = 1 m/s
+Cylinder radius = 0.498268 m
+
+Evaluating analytical solution
+Writing relative error in U to "/home/hk/hk_project/ChatCFD_to_hk/CFD/cylinder/0/error"
+ExecutionTime = 0.081749 s  ClockTime = 7 s
+
+End
+

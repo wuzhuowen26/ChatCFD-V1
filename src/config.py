@@ -157,3 +157,9 @@ set_controlDict_time = False
 pdf_chunk_d = 1.5
 
 case_ic_bc_from_paper = ""
+
+reference_file_by_name = None
+reference_file_by_solver = None
+
+simulate_requirement = None     # 算例运行要求设置
+boundary_name_and_type = None

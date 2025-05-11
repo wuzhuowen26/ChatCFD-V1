@@ -12,6 +12,7 @@ print(f"GPU Name: {torch.cuda.get_device_name(0) if torch.cuda.is_available() el
 # Load model with AMD optimization
 # model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2', 
 #                           device='cuda' if torch.cuda.is_available() else 'cpu')
+
 # model = SentenceTransformer("/home/hk/bge-base-en-v1.5")
 model = SentenceTransformer("/home/hk/all-mpnet-base-v2")
 

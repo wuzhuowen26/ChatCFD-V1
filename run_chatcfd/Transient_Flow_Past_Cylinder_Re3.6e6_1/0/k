@@ -1,0 +1,47 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      k;
+}
+
+dimensions      [0 2 -2 0 0 0 0];
+
+internalField   uniform 0.02016;
+
+boundaryField
+{
+    cylinder
+    {
+        type            kqRWallFunction;
+        value           uniform 0.02016;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+    down
+    {
+        type            inletOutlet;
+        inletValue      uniform 0.02016;
+        value           uniform 0.02016;
+    }
+    right
+    {
+        type            inletOutlet;
+        inletValue      uniform 0.02016;
+        value           uniform 0.02016;
+    }
+    up
+    {
+        type            inletOutlet;
+        inletValue      uniform 0.02016;
+        value           uniform 0.02016;
+    }
+    left
+    {
+        type            fixedValue;
+        value           uniform 0.02016;
+    }
+}
