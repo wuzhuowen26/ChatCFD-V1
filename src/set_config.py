@@ -21,6 +21,8 @@ def read_in_config():
     config.max_running_test_round = config_data["max_running_test_round"]
     config.pdf_chunk_d = config_data["pdf_chunk_d"]
 
+    config.sentence_transformer_path = config_data["sentence_transformer_path"]
+
 def load_openfoam_environment():
     """一次性加载OpenFOAM环境变量到当前Python进程"""
     try:

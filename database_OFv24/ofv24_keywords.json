@@ -1,5 +1,6 @@
 {
     "solver": [
+        "buoyantFoam",
         "interPhaseChangeFoam",
         "potentialFreeSurfaceFoam",
         "uncoupledKinematicParcelDyMFoam",

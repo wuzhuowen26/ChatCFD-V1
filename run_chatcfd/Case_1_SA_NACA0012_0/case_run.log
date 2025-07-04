@@ -1,0 +1,159 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2406                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _9bfe8264-20241212 OPENFOAM=2406 patch=241212 version=2406
+Arch   : "LSB;label=32;scalar=64"
+Exec   : simpleFoam -case /home/ChatCFD_0527/run_chatcfd/Case_1_SA_NACA0012_0
+Date   : Jul 02 2025
+Time   : 17:58:23
+Host   : bohrium-87753-1326080
+PID    : 1483
+I/O    : uncollated
+Case   : /home/ChatCFD_0527/run_chatcfd/Case_1_SA_NACA0012_0
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+
+SIMPLE: convergence criteria
+    field p	 tolerance 1e-05
+    field U	 tolerance 1e-06
+
+Reading field p
+
+Reading field U
+
+Reading/calculating face flux field phi
+
+Selecting incompressible transport model Newtonian
+Selecting turbulence model type RAS
+Selecting RAS turbulence model SpalartAllmaras
+Selecting patchDistMethod meshWave
+ft2 term: inactive
+RAS
+{
+    model           SpalartAllmaras;
+    turbulence      on;
+    printCoeffs     on;
+    sigmaNut        0.66666;
+    kappa           0.41;
+    Cb1             0.1355;
+    Cb2             0.622;
+    Cw2             0.3;
+    Cw3             2;
+    Cv1             7.1;
+    Cs              0.3;
+    ck              0.07;
+    ft2             false;
+    Ct3             1.2;
+    Ct4             0.5;
+}
+
+No MRF models present
+
+No finite volume options present
+
+Starting time loop
+
+Time = 1
+
+smoothSolver:  Solving for Ux, Initial residual = 1, Final residual = 0.0708767, No Iterations 1
+smoothSolver:  Solving for Uy, Initial residual = 1, Final residual = 0.0885674, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 1, Final residual = 0.0483194, No Iterations 128
+time step continuity errors : sum local = 6.77879e-05, global = 1.20768e-05, cumulative = 1.20768e-05
+smoothSolver:  Solving for nuTilda, Initial residual = 1, Final residual = 0.00602319, No Iterations 1
+ExecutionTime = 0.53 s  ClockTime = 0 s
+
+Time = 2
+
+smoothSolver:  Solving for Ux, Initial residual = 0.0133289, Final residual = 0.000855394, No Iterations 1
+smoothSolver:  Solving for Uy, Initial residual = 0.662741, Final residual = 0.0381031, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 0.0272625, Final residual = 0.0013554, No Iterations 35
+time step continuity errors : sum local = 0.00177028, global = 8.62479e-05, cumulative = 9.83247e-05
+smoothSolver:  Solving for nuTilda, Initial residual = 0.00449432, Final residual = 5.66143e-05, No Iterations 1
+ExecutionTime = 0.61 s  ClockTime = 1 s
+
+Time = 3
+
+smoothSolver:  Solving for Ux, Initial residual = 0.00053624, Final residual = 3.09293e-05, No Iterations 1
+smoothSolver:  Solving for Uy, Initial residual = 0.0467077, Final residual = 0.00229578, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 0.049694, Final residual = 0.0023422, No Iterations 54
+time step continuity errors : sum local = 0.00150673, global = -0.000202702, cumulative = -0.000104378
+smoothSolver:  Solving for nuTilda, Initial residual = 0.00381238, Final residual = 0.000122298, No Iterations 1
+ExecutionTime = 0.7 s  ClockTime = 1 s
+
+Time = 4
+
+smoothSolver:  Solving for Ux, Initial residual = 0.000364088, Final residual = 2.68353e-05, No Iterations 1
+smoothSolver:  Solving for Uy, Initial residual = 0.0403618, Final residual = 0.00273094, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 0.0245611, Final residual = 0.00118934, No Iterations 67
+time step continuity errors : sum local = 0.000680713, global = -0.000207373, cumulative = -0.000311751
+smoothSolver:  Solving for nuTilda, Initial residual = 0.00390564, Final residual = 0.000135493, No Iterations 1
+ExecutionTime = 0.82 s  ClockTime = 1 s
+
+Time = 5
+
+smoothSolver:  Solving for Ux, Initial residual = 0.00140033, Final residual = 8.46253e-05, No Iterations 1
+smoothSolver:  Solving for Uy, Initial residual = 0.019876, Final residual = 0.00113134, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 0.00695246, Final residual = 0.000340993, No Iterations 34
+time step continuity errors : sum local = 0.00121979, global = -0.000199517, cumulative = -0.000511268
+smoothSolver:  Solving for nuTilda, Initial residual = 0.00107668, Final residual = 4.29682e-05, No Iterations 1
+ExecutionTime = 1.17 s  ClockTime = 1 s
+
+Time = 6
+
+smoothSolver:  Solving for Ux, Initial residual = 0.00493377, Final residual = 0.00039781, No Iterations 1
+smoothSolver:  Solving for Uy, Initial residual = 0.0165154, Final residual = 0.00115605, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 0.00419796, Final residual = 0.000204433, No Iterations 56
+time step continuity errors : sum local = 0.000997596, global = 0.000106969, cumulative = -0.000404299
+smoothSolver:  Solving for nuTilda, Initial residual = 0.000596193, Final residual = 2.60578e-05, No Iterations 1
+ExecutionTime = 1.27 s  ClockTime = 1 s
+
+Time = 7
+
+smoothSolver:  Solving for Ux, Initial residual = 0.00267975, Final residual = 0.000176967, No Iterations 1
+smoothSolver:  Solving for Uy, Initial residual = 0.0139509, Final residual = 0.000803809, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 0.0160246, Final residual = 0.000778878, No Iterations 69
+time step continuity errors : sum local = 0.000743853, global = 0.000155717, cumulative = -0.000248582
+smoothSolver:  Solving for nuTilda, Initial residual = 0.000437731, Final residual = 2.04139e-05, No Iterations 1
+ExecutionTime = 1.39 s  ClockTime = 1 s
+
+Time = 8
+
+smoothSolver:  Solving for Ux, Initial residual = 0.0104365, Final residual = 0.000673417, No Iterations 1
+smoothSolver:  Solving for Uy, Initial residual = 0.0158507, Final residual = 0.000920357, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 0.00852937, Final residual = 0.000372556, No Iterations 43
+time step continuity errors : sum local = 0.000826113, global = 0.000250766, cumulative = 2.1841e-06
+smoothSolver:  Solving for nuTilda, Initial residual = 0.000376063, Final residual = 1.81189e-05, No Iterations 1
+ExecutionTime = 1.48 s  ClockTime = 2 s
+
+Time = 9
+
+smoothSolver:  Solving for Ux, Initial residual = 0.00193896, Final residual = 0.000154699, No Iterations 1
+smoothSolver:  Solving for Uy, Initial residual = 0.00946252, Final residual = 0.000677591, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 0.00346529, Final residual = 0.000170615, No Iterations 50
+time step continuity errors : sum local = 0.00075177, global = 0.000116536, cumulative = 0.000118721
+smoothSolver:  Solving for nuTilda, Initial residual = 0.000307745, Final residual = 1.53484e-05, No Iterations 1
+ExecutionTime = 1.56 s  ClockTime = 2 s
+
+Time = 10
+
+smoothSolver:  Solving for Ux, Initial residual = 0.000896237, Final residual = 6.23192e-05, No Iterations 1
+smoothSolver:  Solving for Uy, Initial residual = 0.0157615, Final residual = 0.000950109, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 0.00767592, Final residual = 0.000354108, No Iterations 42
+time step continuity errors : sum local = 0.000625455, global = -5.30227e-05, cumulative = 6.56979e-05
+smoothSolver:  Solving for nuTilda, Initial residual = 0.000266189, Final residual = 1.33372e-05, No Iterations 1
+ExecutionTime = 1.79 s  ClockTime = 2 s
+
+End
+

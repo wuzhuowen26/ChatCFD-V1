@@ -1,0 +1,170 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2406                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _9bfe8264-20241212 OPENFOAM=2406 patch=241212 version=2406
+Arch   : "LSB;label=32;scalar=64"
+Exec   : reactingFoam -case /home/ChatCFD_0527/run_chatcfd/Counterflow_Flame_2D_Laminar_0
+Date   : Jun 11 2025
+Time   : 20:36:20
+Host   : bohrium-87753-1326080
+PID    : 16464
+I/O    : uncollated
+Case   : /home/ChatCFD_0527/run_chatcfd/Counterflow_Flame_2D_Laminar_0
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+
+PIMPLE: Operating solver in PISO mode
+
+Reading thermophysical properties
+
+Selecting thermodynamics package 
+{
+    type            hePsiThermo;
+    mixture         reactingMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleEnthalpy;
+    equationOfState perfectGas;
+    specie          specie;
+}
+
+Selecting chemistryReader foamChemistryReader
+Reading field U
+
+Reading/calculating face flux field phi
+
+Creating turbulence model.
+
+Selecting turbulence model type laminar
+Selecting laminar stress model Stokes
+Creating reaction model
+
+Selecting combustion model laminar
+Selecting chemistry solver 
+{
+    solver          EulerImplicit;
+    method          standard;
+}
+
+StandardChemistryModel: Number of species = 5 and reactions = 1
+    using integrated reaction rate
+Creating field dpdt
+
+Creating field kinetic energy K
+
+No MRF models present
+
+No finite volume options present
+Courant Number mean: 0.00027339 max: 0.0175682
+
+Starting time loop
+
+Courant Number mean: 0.00027339 max: 0.0175682
+deltaT = 1.2e-05
+Time = 1.2e-05
+
+diagonal:  Solving for rho, Initial residual = 0, Final residual = 0, No Iterations 0
+PIMPLE: iteration 1
+smoothSolver:  Solving for Ux, Initial residual = 1, Final residual = 9.22987e-10, No Iterations 4
+smoothSolver:  Solving for Uy, Initial residual = 1, Final residual = 5.85128e-10, No Iterations 4
+DILUPBiCGStab:  Solving for O2, Initial residual = 1, Final residual = 8.90045e-10, No Iterations 2
+DILUPBiCGStab:  Solving for H2O, Initial residual = 0, Final residual = 0, No Iterations 0
+DILUPBiCGStab:  Solving for CH4, Initial residual = 1, Final residual = 8.77271e-10, No Iterations 2
+DILUPBiCGStab:  Solving for CO2, Initial residual = 0, Final residual = 0, No Iterations 0
+smoothSolver:  Solving for h, Initial residual = 1, Final residual = 1.46325e-10, No Iterations 5
+min/max(T) = 293, 2000
+GAMG:  Solving for p, Initial residual = 1, Final residual = 8.45818e-08, No Iterations 14
+diagonal:  Solving for rho, Initial residual = 0, Final residual = 0, No Iterations 0
+time step continuity errors : sum local = 0.00325057, global = -0.00325057, cumulative = -0.00325057
+ExecutionTime = 0.05 s  ClockTime = 0 s
+
+Courant Number mean: 0.0149699 max: 0.0732984
+deltaT = 1.44e-05
+Time = 2.64e-05
+
+diagonal:  Solving for rho, Initial residual = 0, Final residual = 0, No Iterations 0
+PIMPLE: iteration 1
+smoothSolver:  Solving for Ux, Initial residual = 0.411222, Final residual = 3.46703e-09, No Iterations 4
+smoothSolver:  Solving for Uy, Initial residual = 0.412158, Final residual = 3.37287e-09, No Iterations 4
+DILUPBiCGStab:  Solving for O2, Initial residual = 0.224091, Final residual = 1.12855e-11, No Iterations 2
+DILUPBiCGStab:  Solving for H2O, Initial residual = 8.83674e-100, Final residual = 8.83674e-100, No Iterations 0
+DILUPBiCGStab:  Solving for CH4, Initial residual = 0.214136, Final residual = 2.80667e-12, No Iterations 2
+DILUPBiCGStab:  Solving for CO2, Initial residual = 1.07939e-99, Final residual = 1.07939e-99, No Iterations 0
+smoothSolver:  Solving for h, Initial residual = 0.214248, Final residual = 4.16026e-10, No Iterations 5
+min/max(T) = 293, 2016.39
+GAMG:  Solving for p, Initial residual = 0.0596205, Final residual = 3.69715e-08, No Iterations 12
+diagonal:  Solving for rho, Initial residual = 0, Final residual = 0, No Iterations 0
+time step continuity errors : sum local = 3.97425e-09, global = -2.32754e-09, cumulative = -0.00325058
+ExecutionTime = 0.07 s  ClockTime = 0 s
+
+Courant Number mean: 0.0443056 max: 0.178552
+deltaT = 1.728e-05
+Time = 4.368e-05
+
+diagonal:  Solving for rho, Initial residual = 0, Final residual = 0, No Iterations 0
+PIMPLE: iteration 1
+smoothSolver:  Solving for Ux, Initial residual = 0.513894, Final residual = 1.35101e-10, No Iterations 5
+smoothSolver:  Solving for Uy, Initial residual = 0.531764, Final residual = 1.64963e-10, No Iterations 5
+DILUPBiCGStab:  Solving for O2, Initial residual = 0.118372, Final residual = 6.58507e-12, No Iterations 2
+DILUPBiCGStab:  Solving for H2O, Initial residual = 2.14366e-90, Final residual = 2.14366e-90, No Iterations 0
+DILUPBiCGStab:  Solving for CH4, Initial residual = 0.0998986, Final residual = 2.66018e-11, No Iterations 2
+DILUPBiCGStab:  Solving for CO2, Initial residual = 2.61844e-90, Final residual = 2.61844e-90, No Iterations 0
+smoothSolver:  Solving for h, Initial residual = 0.198109, Final residual = 3.3135e-09, No Iterations 5
+min/max(T) = 293, 1999.94
+GAMG:  Solving for p, Initial residual = 0.0389527, Final residual = 5.2702e-08, No Iterations 11
+diagonal:  Solving for rho, Initial residual = 0, Final residual = 0, No Iterations 0
+time step continuity errors : sum local = 2.23178e-08, global = 1.38816e-08, cumulative = -0.00325056
+ExecutionTime = 0.09 s  ClockTime = 0 s
+
+Courant Number mean: 0.0540123 max: 0.204684
+deltaT = 2.07361e-05
+Time = 6.44161e-05
+
+diagonal:  Solving for rho, Initial residual = 0, Final residual = 0, No Iterations 0
+PIMPLE: iteration 1
+smoothSolver:  Solving for Ux, Initial residual = 0.716068, Final residual = 9.55443e-10, No Iterations 5
+smoothSolver:  Solving for Uy, Initial residual = 0.187993, Final residual = 3.26786e-10, No Iterations 5
+DILUPBiCGStab:  Solving for O2, Initial residual = 0.0885134, Final residual = 3.36676e-11, No Iterations 2
+DILUPBiCGStab:  Solving for H2O, Initial residual = 6.85252e-82, Final residual = 6.85252e-82, No Iterations 0
+DILUPBiCGStab:  Solving for CH4, Initial residual = 0.0844903, Final residual = 5.0104e-11, No Iterations 2
+DILUPBiCGStab:  Solving for CO2, Initial residual = 8.37024e-82, Final residual = 8.37024e-82, No Iterations 0
+smoothSolver:  Solving for h, Initial residual = 0.179273, Final residual = 9.30203e-09, No Iterations 5
+min/max(T) = 293, 2000.13
+GAMG:  Solving for p, Initial residual = 0.152385, Final residual = 3.70985e-08, No Iterations 12
+diagonal:  Solving for rho, Initial residual = 0, Final residual = 0, No Iterations 0
+time step continuity errors : sum local = 2.80511e-09, global = 1.75373e-09, cumulative = -0.00325056
+ExecutionTime = 0.11 s  ClockTime = 0 s
+
+Courant Number mean: 0.045149 max: 0.205468
+deltaT = 2.48832e-05
+Time = 8.92993e-05
+
+diagonal:  Solving for rho, Initial residual = 0, Final residual = 0, No Iterations 0
+PIMPLE: iteration 1
+smoothSolver:  Solving for Ux, Initial residual = 0.182901, Final residual = 1.43585e-09, No Iterations 5
+smoothSolver:  Solving for Uy, Initial residual = 0.780467, Final residual = 6.87946e-09, No Iterations 5
+DILUPBiCGStab:  Solving for O2, Initial residual = 0.0718985, Final residual = 3.90921e-11, No Iterations 2
+DILUPBiCGStab:  Solving for H2O, Initial residual = 1.71508e-75, Final residual = 1.71508e-75, No Iterations 0
+DILUPBiCGStab:  Solving for CH4, Initial residual = 0.0695999, Final residual = 4.0756e-11, No Iterations 2
+DILUPBiCGStab:  Solving for CO2, Initial residual = 2.09494e-75, Final residual = 2.09494e-75, No Iterations 0
+smoothSolver:  Solving for h, Initial residual = 0.135986, Final residual = 7.75779e-10, No Iterations 6
+min/max(T) = 293, 2000.19
+GAMG:  Solving for p, Initial residual = 0.0349828, Final residual = 5.50732e-08, No Iterations 11
+diagonal:  Solving for rho, Initial residual = 0, Final residual = 0, No Iterations 0
+time step continuity errors : sum local = 1.18335e-08, global = -6.54164e-09, cumulative = -0.00325057
+ExecutionTime = 0.13 s  ClockTime = 0 s
+
+End
+

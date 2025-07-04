@@ -1,0 +1,1022 @@
+****************error_history****************
+=====Test round 0=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'specie' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/constant/thermophysicalProperties/thermoType"
+
+
+file: constant/thermophysicalProperties/thermoType at line 12 to 17.
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = Foam::word]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/thermophysicalProperties
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      thermophysicalProperties;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nthermoType\n{\n    type            hePsiThermo;\n    mixture         reactingMixture;\n    transport       sutherland;\n    thermo          janaf;\n    energy          sensibleEnthalpy;\n    equationOfState perfectGas;\n    specie          specie;\n}\n\ninertSpecie         N2;\n\nchemistryReader     foamChemistryReader;\n\nfoamChemistryFile   \"<constant>/reactions\";\n\nfoamChemistryThermoFile \"<constant>/thermo.compressibleGas\";\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error occurs because the 'specie' keyword is missing in the thermoType sub-dictionary. Add 'specie specie;' inside the thermoType block in constant/thermophysicalProperties. Correct the thermoType section as:  
+thermoType  
+{  
+    type            hePsiThermo;  
+    mixture         reactingMixture;  
+    transport       const;  
+    thermo          hConst;  
+    energy          sensibleEnthalpy;  
+    equationOfState perfectGas;  
+    specie          specie;  
+}  
+
+This matches the OpenFOAM tutorial structure where 'specie' must be explicitly declared in thermoType. Do NOT modify mixture/species sections or initial/boundary conditions - they are properly configured. Ensure no other keywords are present in thermoType except those shown above.
+=====Test round 1=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Unknown chemistryReader type chemkinReader
+
+Valid chemistryReader types :
+1(foamChemistryReader)
+
+
+file: constant/thermophysicalProperties at line 12 to 117.
+
+    From static Foam::autoPtr<Foam::chemistryReader<ThermoType> > Foam::chemistryReader<ThermoType>::New(const Foam::dictionary&, Foam::speciesTable&) [with ThermoType = Foam::constTransport<Foam::species::thermo<Foam::hConstThermo<Foam::perfectGas<Foam::specie> >, Foam::sensibleEnthalpy> >; Foam::speciesTable = Foam::hashedWordList]
+    in file lnInclude/chemistryReader.C at line 53.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/thermophysicalProperties
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      thermophysicalProperties;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nthermoType\n{\n    type            hePsiThermo;\n    mixture         reactingMixture;\n    transport       sutherland;\n    thermo          janaf;\n    energy          sensibleEnthalpy;\n    equationOfState perfectGas;\n    specie          specie;\n}\n\ninertSpecie         N2;\n\nchemistryReader     foamChemistryReader;\n\nfoamChemistryFile   \"<constant>/reactions\";\n\nfoamChemistryThermoFile \"<constant>/thermo.compressibleGas\";\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: In 'constant/thermophysicalProperties', add 'chemistryReader foamChemistryReader;' below 'mixture' section to specify valid reader.  
+Step 2: Add required chemistry file entries below 'mixture':  
+inertSpecie      N2;  
+chemistryReader      foamChemistryReader;  
+foamChemistryFile      "<constant>/reactions";  
+foamChemistryThermoFile "<constant>/thermo.compressibleGas";  
+Step 3: Remove any conflicting 'chemkinReader' references if present. Ensure 'reactions' and 'thermo.compressibleGas' files exist in constant directory.  
+Step 4: Verify thermoType settings remain unchanged to preserve initial/boundary conditions: keep hePsiThermo, reactingMixture, perfectGas, and transport/energy declarations.  
+Step 5: Maintain mixture species definitions and individual specie properties without modification to avoid altering mass fraction conditions.
+=====Test round 2=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'species' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/constant/reactions"
+
+
+file: constant/reactions at line 10 to 22.
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = Foam::List<Foam::word>]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/reactions
+参考文件：
+{
+  "sample_file_0": "\nelements\n(\nO\nC\nH\nN\n);\n\n\nspecies\n(\n    O2\n    H2O\n    CH4\n    CO2\n    N2\n);\n\nreactions\n{\n    methaneReaction\n    {\n        type     irreversibleArrheniusReaction;\n        reaction \"CH4 + 2O2 = CO2 + 2H2O\";\n        A        5.2e16;\n        beta     0;\n        Ta       14906;\n    }\n}\n"
+}
+修改建议：
+
+
+To resolve the "Entry 'species' not found" error in the reactions file, modify the file as follows:
+
+1. Insert the 'species' list before the 'reactions' block, including all species involved in reactions and boundary conditions. 
+2. Correct the reaction syntax to match OpenFOAM's requirements. 
+
+Revised constant/reactions file content:
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       reactionList;
+    location    "constant";
+    object      reactions;
+}
+
+species
+(
+    CH4
+    O2
+    CO2
+    H2O
+    N2
+);
+
+reactions
+(
+    {
+        reaction      "CH4 + 2O2 = CO2 + 2H2O";
+        reactants     (CH4 1 O2 2);
+        products      (CO2 1 H2O 2);
+        Arrhenius
+        {
+            A       5.2e16;
+            beta    0;
+            Ta      14906;
+        }
+    }
+);
+
+Key changes:
+- Added mandatory 'species' list
+- Fixed parentheses syntax for reactants/products (use () instead of {})
+- Maintained boundary condition compliance by including all species from initial/boundary definitions
+=====Test round 3=====
+运行错误:
+
+
+--> FOAM FATAL ERROR: (openfoam-2406 patch=241212)
+Attempt to return primitive entry ITstream : /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/constant/reactions/reactions, line 19-31, IOstream: Version 2.0, format ascii, line 0, OPENED, GOOD
+    primitiveEntry 'reactions' comprises 
+        on line 19: punctuation '('
+        on line 20: punctuation '{'
+        on line 21: word 'reaction'
+        on line 22: string "CH4 + 2O2 = CO2 + 2H2O"
+        on line 22: punctuation ';'
+        on line 22: word 'reactants'
+        on line 23: punctuation '('
+        on line 23: word 'CH4'
+        on line 23: label 1
+        on line 23: word 'O2' ...
+ as a sub-dictionary
+
+    From virtual const Foam::dictionary& Foam::primitiveEntry::dict() const
+    in file db/dictionary/primitiveEntry/primitiveEntry.C at line 294.
+
+FOAM aborting
+
+[stack trace]
+=============
+#1  Foam::error::simpleExit(int, bool) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  Foam::primitiveEntry::dict() const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#3  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#4  Foam::chemistryReader<Foam::constTransport<Foam::species::thermo<Foam::hConstThermo<Foam::perfectGas<Foam::specie> >, Foam::sensibleEnthalpy> > >::adddictionaryConstructorToTable<Foam::foamChemistryReader<Foam::constTransport<Foam::species::thermo<Foam::hConstThermo<Foam::perfectGas<Foam::specie> >, Foam::sensibleEnthalpy> > > >::New(Foam::dictionary const&, Foam::hashedWordList&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#5  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#6  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#8  Foam::psiReactionThermo::addfvMeshConstructorToTable<Foam::hePsiThermo<Foam::psiReactionThermo, Foam::SpecieMixture<Foam::reactingMixture<Foam::constTransport<Foam::species::thermo<Foam::hConstThermo<Foam::perfectGas<Foam::specie> >, Foam::sensibleEnthalpy> > > > > >::New(Foam::fvMesh const&, Foam::word const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#10  Foam::psiReactionThermo::New(Foam::fvMesh const&, Foam::word const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#11  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#12  ? in /lib/x86_64-linux-gnu/libc.so.6
+#13  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#14  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  1214 Aborted                 reactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+网格边界条件的修正
+纠错方案：
+修改文件constant/reactions
+参考文件：
+{
+  "sample_file_0": "\nelements\n(\nO\nC\nH\nN\n);\n\n\nspecies\n(\n    O2\n    H2O\n    CH4\n    CO2\n    N2\n);\n\nreactions\n{\n    methaneReaction\n    {\n        type     irreversibleArrheniusReaction;\n        reaction \"CH4 + 2O2 = CO2 + 2H2O\";\n        A        5.2e16;\n        beta     0;\n        Ta       14906;\n    }\n}\n"
+}
+修改建议：
+
+
+Step 1: Replace parentheses with braces for reactions block. Change:
+reactions
+(
+...
+);
+to
+reactions
+{
+...
+}
+
+Step 2: Name the reaction sub-dictionary. Add identifier "methaneReaction" after opening brace of reaction entry.
+
+Step 3: Add mandatory 'type' specification. Insert line:
+type irreversibleArrheniusReaction;
+below reaction declaration.
+
+Step 4: Remove explicit reactants/products lists. Delete lines:
+reactants (CH4 1 O2 2);
+products (CO2 1 H2O 2);
+OpenFOAM automatically parses stoichiometry from reaction string.
+
+Step 5: Verify species list matches actual species in boundary conditions. Keep existing species block as N2 appears in BCs.
+
+Final corrected reactions file:
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       reactionList;
+    location    "constant";
+    object      reactions;
+}
+
+species
+(
+    CH4
+    O2
+    CO2
+    H2O
+    N2
+);
+
+reactions
+{
+    methaneReaction
+    {
+        type     irreversibleArrheniusReaction;
+        reaction "CH4 + 2O2 = CO2 + 2H2O";
+        Arrhenius
+        {
+            A       5.2e16;
+            beta    0;
+            Ta      14906;
+        }
+    }
+}
+=====Test round 4=====
+运行错误:
+
+
+--> FOAM FATAL ERROR: (openfoam-2406 patch=241212)
+CH4 not found in table.  Valid entries: 1(mixture)
+
+    From const T& Foam::HashTable<T, Key, Hash>::at(const Key&) const [with T = Foam::constTransport<Foam::species::thermo<Foam::hConstThermo<Foam::perfectGas<Foam::specie> >, Foam::sensibleEnthalpy> >*; Key = Foam::word; Hash = Foam::Hash<Foam::word>]
+    in file ./src/OpenFOAM/lnInclude/HashTableI.H at line 68.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/thermophysicalProperties
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      thermophysicalProperties;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nthermoType\n{\n    type            hePsiThermo;\n    mixture         reactingMixture;\n    transport       sutherland;\n    thermo          janaf;\n    energy          sensibleEnthalpy;\n    equationOfState perfectGas;\n    specie          specie;\n}\n\ninertSpecie         N2;\n\nchemistryReader     foamChemistryReader;\n\nfoamChemistryFile   \"<constant>/reactions\";\n\nfoamChemistryThermoFile \"<constant>/thermo.compressibleGas\";\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: Move all species definitions (CH4/O2/CO2/H2O/N2) under the mixture subdictionary. Current structure places them as top-level entries while reactingMixture expects them within mixture. Delete top-level CH4/O2/CO2/H2O/N2 blocks.
+
+Step 2: Correct mixture section structure:
+mixture
+{
+    species ( CH4 O2 CO2 H2O N2 );
+    inertSpecie      N2;
+    chemistryReader  foamChemistryReader;
+    foamChemistryFile      "<constant>/reactions";
+    foamChemistryThermoFile "<constant>/thermo.compressibleGas";
+
+    CH4 { ... }
+    O2 { ... }
+    CO2 { ... }
+    H2O { ... }
+    N2 { ... }
+}
+
+Step 3: Remove duplicate inertSpecie and chemistryReader entries from top-level dictionary. These belong strictly to mixture section when using reactingMixture.
+
+Step 4: Ensure thermoType parameters match tutorial structure: transport/thermo types must align with actual species definitions. Current "transport const" requires constant properties in each specie's transport block (already present), but this conflicts with reacting mixture requirements. Consider changing to sutherland transport if reacting flows are modeled.
+
+Step 5: Validate Y_CH4 initial condition matches mixture species spelling exactly. The 100% CH4 mass fraction in initial conditions is compatible with reactingMixture setup when properly structured.
+=====Test round 5=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Unknown psiReactionThermo type 
+
+Valid psiReactionThermo types :
+
+23
+(
+hePsiThermo<homogeneousMixture<const<hConst<perfectGas<specie>>,sensibleEnthalpy>>>
+hePsiThermo<homogeneousMixture<sutherland<hConst<perfectGas<specie>>,sensibleEnthalpy>>>
+hePsiThermo<homogeneousMixture<sutherland<janaf<perfectGas<specie>>,sensibleEnthalpy>>>
+hePsiThermo<inhomogeneousMixture<const<hConst<perfectGas<specie>>,sensibleEnthalpy>>>
+hePsiThermo<inhomogeneousMixture<sutherland<hConst<perfectGas<specie>>,sensibleEnthalpy>>>
+hePsiThermo<inhomogeneousMixture<sutherland<janaf<perfectGas<specie>>,sensibleEnthalpy>>>
+hePsiThermo<multiComponentMixture<const<eConst<perfectGas<specie>>,sensibleInternalEnergy>>>
+hePsiThermo<multiComponentMixture<const<hConst<perfectGas<specie>>,sensibleEnthalpy>>>
+hePsiThermo<multiComponentMixture<sutherland<janaf<perfectGas<specie>>,sensibleEnthalpy>>>
+hePsiThermo<multiComponentMixture<sutherland<janaf<perfectGas<specie>>,sensibleInternalEnergy>>>
+hePsiThermo<pureMixture<const<eConst<perfectGas<specie>>,sensibleInternalEnergy>>>
+hePsiThermo<pureMixture<const<hConst<perfectGas<specie>>,sensibleEnthalpy>>>
+hePsiThermo<pureMixture<sutherland<janaf<perfectGas<specie>>,sensibleEnthalpy>>>
+hePsiThermo<pureMixture<sutherland<janaf<perfectGas<specie>>,sensibleInternalEnergy>>>
+hePsiThermo<reactingMixture<const<eConst<perfectGas<specie>>,sensibleInternalEnergy>>>
+hePsiThermo<reactingMixture<const<hConst<perfectGas<specie>>,sensibleEnthalpy>>>
+hePsiThermo<reactingMixture<sutherland<janaf<perfectGas<specie>>,sensibleEnthalpy>>>
+hePsiThermo<reactingMixture<sutherland<janaf<perfectGas<specie>>,sensibleInternalEnergy>>>
+hePsiThermo<singleStepReactingMixture<sutherland<janaf<perfectGas<specie>>,sensibleEnthalpy>>>
+hePsiThermo<singleStepReactingMixture<sutherland<janaf<perfectGas<specie>>,sensibleInternalEnergy>>>
+hePsiThermo<veryInhomogeneousMixture<const<hConst<perfectGas<specie>>,sensibleEnthalpy>>>
+hePsiThermo<veryInhomogeneousMixture<sutherland<hConst<perfectGas<specie>>,sensibleEnthalpy>>>
+hePsiThermo<veryInhomogeneousMixture<sutherland<janaf<perfectGas<specie>>,sensibleEnthalpy>>>
+)
+
+type         mixture                    transport   thermo  equationOfState  specie  energy                  
+
+hePsiThermo  homogeneousMixture         const       hConst  perfectGas       specie  sensibleEnthalpy        
+hePsiThermo  homogeneousMixture         sutherland  hConst  perfectGas       specie  sensibleEnthalpy        
+hePsiThermo  homogeneousMixture         sutherland  janaf   perfectGas       specie  sensibleEnthalpy        
+hePsiThermo  inhomogeneousMixture       const       hConst  perfectGas       specie  sensibleEnthalpy        
+hePsiThermo  inhomogeneousMixture       sutherland  hConst  perfectGas       specie  sensibleEnthalpy        
+hePsiThermo  inhomogeneousMixture       sutherland  janaf   perfectGas       specie  sensibleEnthalpy        
+hePsiThermo  multiComponentMixture      const       eConst  perfectGas       specie  sensibleInternalEnergy  
+hePsiThermo  multiComponentMixture      const       hConst  perfectGas       specie  sensibleEnthalpy        
+hePsiThermo  multiComponentMixture      sutherland  janaf   perfectGas       specie  sensibleEnthalpy        
+hePsiThermo  multiComponentMixture      sutherland  janaf   perfectGas       specie  sensibleInternalEnergy  
+hePsiThermo  pureMixture                const       eConst  perfectGas       specie  sensibleInternalEnergy  
+hePsiThermo  pureMixture                const       hConst  perfectGas       specie  sensibleEnthalpy        
+hePsiThermo  pureMixture                sutherland  janaf   perfectGas       specie  sensibleEnthalpy        
+hePsiThermo  pureMixture                sutherland  janaf   perfectGas       specie  sensibleInternalEnergy  
+hePsiThermo  reactingMixture            const       eConst  perfectGas       specie  sensibleInternalEnergy  
+hePsiThermo  reactingMixture            const       hConst  perfectGas       specie  sensibleEnthalpy        
+hePsiThermo  reactingMixture            sutherland  janaf   perfectGas       specie  sensibleEnthalpy        
+hePsiThermo  reactingMixture            sutherland  janaf   perfectGas       specie  sensibleInternalEnergy  
+hePsiThermo  singleStepReactingMixture  sutherland  janaf   perfectGas       specie  sensibleEnthalpy        
+hePsiThermo  singleStepReactingMixture  sutherland  janaf   perfectGas       specie  sensibleInternalEnergy  
+hePsiThermo  veryInhomogeneousMixture   const       hConst  perfectGas       specie  sensibleEnthalpy        
+hePsiThermo  veryInhomogeneousMixture   sutherland  hConst  perfectGas       specie  sensibleEnthalpy        
+hePsiThermo  veryInhomogeneousMixture   sutherland  janaf   perfectGas       specie  sensibleEnthalpy        
+
+
+file: constant/thermophysicalProperties/thermoType at line 12 to 18.
+
+    From static typename ThermoConstructTable::mapped_type Foam::basicThermo::getThermoOrDie(const Foam::dictionary&, ThermoConstructTable&, const Foam::word&, const wordList&) [with Thermo = Foam::psiReactionThermo; ThermoConstructTable = Foam::HashTable<Foam::autoPtr<Foam::psiReactionThermo> (*)(const Foam::fvMesh&, const Foam::word&), Foam::word, Foam::Hash<Foam::word> >; typename ThermoConstructTable::mapped_type = Foam::autoPtr<Foam::psiReactionThermo> (*)(const Foam::fvMesh&, const Foam::word&); Foam::wordList = Foam::List<Foam::word>]
+    in file ./src/thermophysicalModels/basic/lnInclude/basicThermoTemplates.C at line 50.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/thermophysicalProperties
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      thermophysicalProperties;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nthermoType\n{\n    type            hePsiThermo;\n    mixture         reactingMixture;\n    transport       sutherland;\n    thermo          janaf;\n    energy          sensibleEnthalpy;\n    equationOfState perfectGas;\n    specie          specie;\n}\n\ninertSpecie         N2;\n\nchemistryReader     foamChemistryReader;\n\nfoamChemistryFile   \"<constant>/reactions\";\n\nfoamChemistryThermoFile \"<constant>/thermo.compressibleGas\";\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: Modify the thermoType section in constant/thermophysicalProperties. Change "thermo hConst" to "thermo janaf" to match valid reactingMixture combinations.  
+Step 2: Remove the hConst-based Cp values from species thermodynamics. Replace each species' thermodynamics block with JANAF polynomial coefficients formatted as:  
+thermodynamics { CpCoeffs<8> (t1 t2 t3 t4 t5 t6 t7 t8); Hf VALUE; }  
+Step 3: Ensure transport blocks use Sutherland parameters (As, Ts) instead of constant mu. Replace each "mu" entry with:  
+transport { As VALUE; Ts VALUE; }  
+Step 4: Confirm "energy sensibleEnthalpy" is retained since it matches the valid reactingMixture+sutherland+janaf configuration.  
+Step 5: Verify "equationOfState perfectGas" and "specie specie" remain unchanged as they are valid settings.
+=====Test round 6=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'CHEMKINFile' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/constant/thermophysicalProperties"
+
+
+file: constant/thermophysicalProperties at line 12 to 120.
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = Foam::fileName]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/thermophysicalProperties
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      thermophysicalProperties;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nthermoType\n{\n    type            hePsiThermo;\n    mixture         reactingMixture;\n    transport       sutherland;\n    thermo          janaf;\n    energy          sensibleEnthalpy;\n    equationOfState perfectGas;\n    specie          specie;\n}\n\ninertSpecie         N2;\n\nchemistryReader     foamChemistryReader;\n\nfoamChemistryFile   \"<constant>/reactions\";\n\nfoamChemistryThermoFile \"<constant>/thermo.compressibleGas\";\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+To resolve the FOAM FATAL IO ERROR due to the missing 'CHEMKINFile' entry in constant/thermophysicalProperties, follow these steps:
+
+1. **Relocate the chemistryReader entries**: Move `chemistryReader`, `foamChemistryFile`, and `foamChemistryThermoFile` from the `mixture` subdictionary to the **main level** of the dictionary. These entries are incorrectly nested under `mixture` and should be top-level keys (as in the tutorial example).
+
+2. **Move `inertSpecie` to the main level**: Transfer `inertSpecie N2;` from the `mixture` block to the main level. This aligns with the tutorial structure and ensures proper parsing.
+
+3. **Delete redundant entries in `mixture`**: Remove the lines:
+   - `chemistryReader foamChemistryReader;`
+   - `foamChemistryFile "<constant>/reactions";`
+   - `foamChemistryThermoFile "<constant>/thermo.compressibleGas";`
+   from the `mixture` block to prevent duplication and syntax conflicts.
+
+4. **Ensure species list correctness**: Keep `species ( CH4 O2 CO2 H2O N2 );` in the `mixture` block unchanged, as it is correctly specified.
+
+**Corrected file structure**:
+```
+thermoType { ... }
+inertSpecie      N2;                      // Moved to main level
+chemistryReader      foamChemistryReader; // Moved to main level
+foamChemistryFile      "<constant>/reactions"; // Moved to main level
+foamChemistryThermoFile "<constant>/thermo.compressibleGas"; // Moved to main level
+mixture
+{
+    species ( CH4 O2 CO2 H2O N2 );
+    // Removed chemistryReader, inertSpecie, and file entries here
+    ...
+}
+```
+This revision addresses the parser’s expectation of `CHEMKINFile` by ensuring the correct placement of `foamChemistryReader`-related entries. The error occurs because OpenFOAM defaults to seeking `CHEMKINFile` when chemistry settings are mislocated, even if `foamChemistryReader` is declared. The changes align the file with OpenFOAM’s syntax requirements without altering initial/boundary conditions.
+=====Test round 7=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'Tlow' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/constant/thermo.compressibleGas/mixture/thermodynamics"
+
+
+file: constant/thermo.compressibleGas/mixture/thermodynamics at line 20 to 21.
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = double]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/thermo.compressibleGas
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      thermo.compressibleGas;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nO2\n{\n    specie\n    {\n        molWeight       31.9988;\n    }\n    elements\n    {\n        O       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 3.69758 0.00061352 -1.25884e-07 1.77528e-11 -1.13644e-15 -1233.93 3.18917 );\n        lowCpCoeffs     ( 3.21294 0.00112749 -5.75615e-07 1.31388e-09 -8.76855e-13 -1005.25 6.03474 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nH2O\n{\n    specie\n    {\n        molWeight       18.0153;\n    }\n    elements\n    {\n        O       1;\n        H       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 2.67215 0.00305629 -8.73026e-07 1.201e-10 -6.39162e-15 -29899.2 6.86282 );\n        lowCpCoeffs     ( 3.38684 0.00347498 -6.3547e-06 6.96858e-09 -2.50659e-12 -30208.1 2.59023 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nCH4\n{\n    specie\n    {\n        molWeight       16.0428;\n    }\n    elements\n    {\n        C       1;\n        H       4;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           6000;\n        Tcommon         1000;\n        highCpCoeffs    ( 1.63543 0.0100844 -3.36924e-06 5.34973e-10 -3.15528e-14 -10005.6 9.9937 );\n        lowCpCoeffs     ( 5.14988 -0.013671 4.91801e-05 -4.84744e-08 1.66694e-11 -10246.6 -4.64132 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nCO2\n{\n    specie\n    {\n        molWeight       44.01;\n    }\n    elements\n    {\n        C       1;\n        O       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 4.45362 0.00314017 -1.27841e-06 2.394e-10 -1.66903e-14 -48967 -0.955396 );\n        lowCpCoeffs     ( 2.27572 0.00992207 -1.04091e-05 6.86669e-09 -2.11728e-12 -48373.1 10.1885 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nN2\n{\n    specie\n    {\n        molWeight       28.0134;\n    }\n    elements\n    {\n        N       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 2.92664 0.00148798 -5.68476e-07 1.0097e-10 -6.75335e-15 -922.798 5.98053 );\n        lowCpCoeffs     ( 3.29868 0.00140824 -3.96322e-06 5.64152e-09 -2.44486e-12 -1020.9 3.95037 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error occurs because 'Tlow' is missing in the 'thermodynamics' subdictionary of 'mixture' in 'constant/thermo.compressibleGas'. OpenFOAM requires polynomial Cp coefficients with Tlow/Thigh ranges for compressible gas thermodynamics. The current file defines simplified constant Cp values incompatible with the expected formulation.
+
+Step-by-step fix:
+1. Delete the existing 'mixture' block in 'constant/thermo.compressibleGas' - multi-species thermodynamics should not be defined here.
+2. Replace it with species-specific entries using polynomial Cp coefficients from the tutorial:
+   - Add CH4, O2, N2, CO2, H2O blocks
+   - Include their 'thermodynamics' with Tlow, Thigh, Tcommon, highCpCoeffs, lowCpCoeffs
+   - Copy exact coefficient values from the tutorial's sample_file_0
+3. Ensure each species block contains valid 'molWeight', 'elements', and 'transport' properties from the tutorial data.
+4. Maintain the original file header (FoamFile dictionary format) unchanged.
+
+This aligns the thermodynamics with OpenFOAM's compressibleGas requirements while preserving the paper's boundary conditions through proper species definitions.
+=====Test round 8=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'A' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/constant/reactions/reactions/methaneReaction"
+
+
+file: constant/reactions/reactions/methaneReaction at line 23 to 29.
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = double]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/reactions
+参考文件：
+{
+  "sample_file_0": "\nelements\n(\nO\nC\nH\nN\n);\n\n\nspecies\n(\n    O2\n    H2O\n    CH4\n    CO2\n    N2\n);\n\nreactions\n{\n    methaneReaction\n    {\n        type     irreversibleArrheniusReaction;\n        reaction \"CH4 + 2O2 = CO2 + 2H2O\";\n        A        5.2e16;\n        beta     0;\n        Ta       14906;\n    }\n}\n"
+}
+修改建议：
+
+
+The error occurs because the 'A' coefficient is incorrectly placed inside an 'Arrhenius' sub-dictionary. OpenFOAM's 'irreversibleArrheniusReaction' requires 'A', 'beta', and 'Ta' to be direct entries under the reaction block, not nested. Correct the 'constant/reactions' file by removing the 'Arrhenius' sub-dictionary. Modify the reaction block as:
+
+methaneReaction
+{
+    type     irreversibleArrheniusReaction;
+    reaction "CH4 + 2O2 = CO2 + 2H2O";
+    A        5.2e16;
+    beta     0;
+    Ta       14906;
+}
+
+This aligns with the tutorial structure where Arrhenius coefficients are direct entries. Ensure no other parameters are nested under unnecessary sub-dictionaries. The correction maintains the reaction kinetics without altering initial/boundary conditions.
+=====Test round 9=====
+运行错误:
+
+
+--> FOAM FATAL ERROR: (openfoam-2406 patch=241212)
+Sum of mass fractions is zero for species 5(CH4 O2 CO2 H2O N2)
+    Min of mass fraction sum 0
+
+    From void Foam::multiComponentMixture<ThermoType>::correctMassFractions() [with ThermoType = Foam::sutherlandTransport<Foam::species::thermo<Foam::janafThermo<Foam::perfectGas<Foam::specie> >, Foam::sensibleEnthalpy> >]
+    in file lnInclude/multiComponentMixture.C at line 65.
+
+FOAM exiting
+
+
+纠错方案：
+进行化学体积分数之和不为1的修正
+=====Test round 10=====
+运行错误:
+
+
+--> FOAM FATAL ERROR: (openfoam-2406 patch=241212)
+Template parameter based chemistry solver selection is no longer supported. Please create a chemistryType dictionaryinstead.
+
+For example, the entry:
+    chemistrySolver ode<StandardChemistryModel<rhoChemistryModel,sutherlandspecie<janaf<perfectGas>,sensibleInternalEnergy>>
+
+becomes:
+    chemistryType
+    {
+        solver ode;
+        method standard;
+    }
+
+    From static Foam::autoPtr<T> Foam::basicChemistryModel::New(typename ChemistryModel::reactionThermo&) [with ChemistryModel = Foam::BasicChemistryModel<Foam::psiReactionThermo>; typename ChemistryModel::reactionThermo = Foam::psiReactionThermo]
+    in file ./src/thermophysicalModels/chemistryModel/lnInclude/basicChemistryModelTemplates.C at line 57.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/chemistryProperties
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      chemistryProperties;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nchemistryType\n{\n    solver          EulerImplicit;\n}\n\nchemistry           on;\n\ninitialChemicalTimeStep 1e-07;\n\nEulerImplicitCoeffs\n{\n    cTauChem        1;\n    equilibriumRateLimiter off;\n}\n\nodeCoeffs\n{\n    solver          Rosenbrock34;\n    absTol          1e-12;\n    relTol          0.01;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error arises because the chemistry solver is selected via a deprecated template parameter. Replace the file contents with:
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      chemistryProperties;
+}
+
+chemistryType
+{
+    solver ode;
+    method standard;
+}
+
+chemistry            on;
+equilibrium          off;
+energy               reacting;
+relaxation           on;
+relaxationFactor     1;
+
+No other entries should be modified as the initial/boundary conditions in the JSON are controlled by boundary condition files, not chemistryProperties. The correction strictly converts template-based chemistry selection to the new dictionary format without altering physical models or numerical parameters.
+=====Test round 11=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'initialChemicalTimeStep' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/constant/chemistryProperties"
+
+
+file: constant/chemistryProperties at line 12 to 20.
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = double]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/chemistryProperties
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      chemistryProperties;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nchemistryType\n{\n    solver          EulerImplicit;\n}\n\nchemistry           on;\n\ninitialChemicalTimeStep 1e-07;\n\nEulerImplicitCoeffs\n{\n    cTauChem        1;\n    equilibriumRateLimiter off;\n}\n\nodeCoeffs\n{\n    solver          Rosenbrock34;\n    absTol          1e-12;\n    relTol          0.01;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+1. Open 'constant/chemistryProperties' for editing.  
+2. Remove the 'method standard;' line from the 'chemistryType' subdictionary. This field is invalid for chemistry solvers and belongs in solver-specific coefficient subdictionaries.  
+3. Add 'initialChemicalTimeStep 1e-07;' as a top-level entry (not nested in other subdicts) to define the chemical integration time step.  
+4. Add an 'odeCoeffs' subdictionary with parameters like 'solver Rosenbrock34;', 'absTol 1e-12;', and 'relTol 0.01;' to configure the ODE solver.  
+5. Ensure no modifications impact the paper's initial/boundary conditions (e.g., equilibrium, energy, relaxation settings remain unaltered).
+=====Test round 12=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'rho' not found in dictionary "system/fvSolution/solvers"
+
+
+file: system/fvSolution/solvers at line 14 to 41.
+
+    From const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 457.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件system/fvSolution
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      fvSolution;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nsolvers\n{\n    \"rho.*\"\n    {\n        solver          diagonal;\n    }\n\n    p\n    {\n        solver           PCG;\n        preconditioner   DIC;\n        tolerance        1e-6;\n        relTol           0.1;\n    }\n\n    pFinal\n    {\n        $p;\n        tolerance        1e-6;\n        relTol           0.0;\n    }\n\n    \"(U|h|k|epsilon)\"\n    {\n        solver          PBiCGStab;\n        preconditioner  DILU;\n        tolerance       1e-6;\n        relTol          0.1;\n    }\n\n    \"(U|h|k|epsilon)Final\"\n    {\n        $U;\n        relTol          0;\n    }\n\n    Yi\n    {\n        $hFinal;\n    }\n}\n\nPIMPLE\n{\n    momentumPredictor no;\n    nOuterCorrectors  1;\n    nCorrectors       2;\n    nNonOrthogonalCorrectors 0;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error occurs because the solver entry for 'rho' is missing in the 'solvers' dictionary of system/fvSolution. This is required for compressible flow simulations. Add this block to the solvers section without modifying existing entries or boundary/initial conditions:
+
+solvers
+{
+    "rho.*"
+    {
+        solver          diagonal;
+    }
+    // Keep existing p, U, T, Yi.* entries unchanged
+}
+
+Place the "rho.*" block before other solvers. Do NOT add 'rho' to boundary/initial conditions or thermoPhysicalProperties. The diagonal solver is appropriate here as density is typically treated explicitly in compressible solvers. No removal of other entries is required.
+=====Test round 13=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  2399 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 14=====
+运行错误:
+
+
+--> FOAM FATAL ERROR: (openfoam-2406 patch=241212)
+Sum of mass fractions is zero for species 5(CH4 O2 CO2 H2O N2)
+    Min of mass fraction sum 0
+
+    From void Foam::multiComponentMixture<ThermoType>::correctMassFractions() [with ThermoType = Foam::sutherlandTransport<Foam::species::thermo<Foam::janafThermo<Foam::perfectGas<Foam::specie> >, Foam::sensibleEnthalpy> >]
+    in file lnInclude/multiComponentMixture.C at line 65.
+
+FOAM exiting
+
+
+纠错方案：
+进行化学体积分数之和不为1的修正
+=====Test round 15=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  2718 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 16=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  2998 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 17=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  3278 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 18=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  3557 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 19=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  3837 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 20=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  4117 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 21=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  4397 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 22=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  4677 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 23=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  4956 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 24=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  5236 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 25=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  5516 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 26=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  5797 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 27=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  6076 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 28=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  6356 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 29=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::divide(Foam::Field<double>&, Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::operator/(Foam::UList<double> const&, Foam::UList<double> const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::diagonalSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::fvMatrix<double>::solveSegregated(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  Foam::fvMesh::solve(Foam::fvMatrix<double>&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1:  6636 Floating point exceptionreactingFoam -case /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0 > /home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正

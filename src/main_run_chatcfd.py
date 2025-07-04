@@ -148,6 +148,11 @@ def case_required_file(solver_, turbulence_model_):
 
     config.global_files = list(result_set)
 
+    if solver_ == "reactingFoam":
+        if "GRI" in config.other_physical_model:
+            config.global_files.append("constant/thermo.compressibleGasGRI")
+            config.global_files.append("constant/reactionsGRI")
+
     compressible_solvers = ["acousticFoam", "overRhoPimpleDyMFoam", "overRhoSimpleFoam", "rhoCentralFoam", "rhoPimpleAdiabaticFoam", "rhoPimpleFoam", "rhoPorousSimpleFoam", "rhoSimpleFoam", "sonicDyMFoam", "sonicFoam", "sonicLiquidFoam"]
 
     if config.case_solver in compressible_solvers:
@@ -168,6 +173,7 @@ def main(file_name):
 
     set_config.load_openfoam_environment()
     
+    # print(config.pdf_path)
     config.paper_content, config.paper_table = process_pdf_pdfplumber(config.pdf_path)
     # config.paper_content = process_pdf(config.pdf_path)
 
@@ -184,16 +190,26 @@ def main(file_name):
     config.case_log_write = True
 
     # list the files required by the solver and turbulence model
-    case_required_file(test_solver, test_turbulence_model)
+    if 0:
+        case_required_file(test_solver, test_turbulence_model)  # case的solver和turbulence model
+    else: # 如果通用的文件结构不能满足case的需求
+        file_corrector.case_required_file2(test_solver, test_turbulence_model)
+    print("文件结构：", config.global_files)
 
+    write_initial_files = False
+    while not write_initial_files:
+        pdf_chunk_response = pdf_chunk_ask()                    # 生成最初的文件
+        # print("pdf_chunk_response", pdf_chunk_response)
 
-    pdf_chunk_response = pdf_chunk_ask()
+        config.target_case_requirement_json = pdf_chunk_response
 
-    config.target_case_requirement_json = pdf_chunk_response
-
-    preprocess_OF_tutorial.read_in_processed_merged_OF_cases()
-
-    config.global_files = json.loads(config.target_case_requirement_json)
+        preprocess_OF_tutorial.read_in_processed_merged_OF_cases()
+        try:
+            config.global_files = json.loads(config.target_case_requirement_json)
+            write_initial_files = True
+        except json.JSONDecodeError as e:
+            print(f"JSON解码错误: {e}")
+            print("重新生成初始文件")
 
     # write the case files
     for key, value in config.global_files.items():
@@ -217,6 +233,12 @@ def main(file_name):
     # run file test and correct
     run_of_case.convert_mesh(config.OUTPUT_PATH, config.case_grid)
 
+    print("检查网格维度")
+    file_corrector.fix_boundary_dimension()
+
+    with open(f"{config.OUTPUT_PATH}/error_history.txt", "w") as f:
+        f.write("****************error_history****************\n")
+
     # run the OpenFOAM case and ICOT debug
     for test_time in range(0, config.max_running_test_round):
         try:
@@ -228,8 +250,63 @@ def main(file_name):
                 running_error = case_run_info
                 config.error_history.append(running_error)
 
+                # 报错错误历史记录
+                with open(f"{config.OUTPUT_PATH}/error_history.txt", "a") as f:
+                    f.write(f"=====Test round {test_time}=====\n运行错误:\n{running_error}\n")
+
+                # OpenFOAM浮点数带来的错误(Floating point exception)
+                float_error_keywords = [
+                    "Foam::error::printStack(Foam::Ostream&) at ??:?",
+                    "Foam::sigFpe::sigHandler(int)",
+                    "Floating point exception"
+                ]
+                float_error = any(keyword if keyword in running_error else False for keyword in float_error_keywords)
+                if float_error:
+                    file_corrector.fix_floating_point_exception(running_error)
+                    if running_error.startswith("[stack trace]\n=============\n#1  Foam::sigFpe::sigHandler(int)"):
+                        print("仅发生浮点数异常错误")
+                        with open(f"{config.OUTPUT_PATH}/error_history.txt", "a") as f:
+                            f.write("纠错方案：\n进行浮点数异常错误修正\n")
+                        continue
+                    
+                # OpenFOAM化学体积分数不为1
+                if "Sum of mass fractions is zero for species" in running_error:
+                    file_corrector.fix_mass_fraction_zero()
+                    with open(f"{config.OUTPUT_PATH}/error_history.txt", "a") as f:
+                        f.write("纠错方案：\n进行化学体积分数之和不为1的修正\n")
+                    continue
+
+                # OpenFOAM进行网格转换带来的问题
+                # if "inconsistent" in running_error.lower() and test_time <= 2:
+                #     print("检查网格维度")
+                #     file_corrector.fix_boundary_dimension()
+                #     continue
+                # if "Foam::error::simpleExit(int, bool) in" in running_error or "Foam::sigFpe::sigHandler(int)" in running_error or file_corrector.detect_boundary_error(running_error) or "No \"neighbourPatch\" provided" in running_error:
+                #     print("检查网格边界导致的问题")
+                #     file_corrector.fix_boundary_type(running_error)
+                #     continue
+
+                boundary_error_keywords = [
+                    "inconsistent", 
+                    "Foam::error::simpleExit(int, bool) in", 
+                    "Foam::sigFpe::sigHandler(int)",
+                    "No \"neighbourPatch\" provided"
+                    ]
+
+                boundary_error = any(keyword if keyword in running_error else False for keyword in boundary_error_keywords)
+                if boundary_error or file_corrector.detect_boundary_error(running_error):
+                    print("检查网格边界导致的问题")
+                    file_corrector.fix_boundary_error(running_error)
+                    with open(f"{config.OUTPUT_PATH}/error_history.txt", "a") as f:
+                        f.write("纠错方案：\n网格边界条件的修正\n")
+                    # continue
+
                 if file_corrector.detect_dimension_error(running_error):
+                    # constant/pRef不正确
+
                     file_corrector.strongly_correct_all_dimension_with_reference_files()
+                    with open(f"{config.OUTPUT_PATH}/error_history.txt", "a") as f:
+                        f.write("纠错方案：\n场文件量纲的修正\n")
                 else:
                     #判断是否需要添加新文件
                     answer_add_new_file = file_corrector.identify_error_to_add_new_file(running_error)
@@ -239,21 +316,38 @@ def main(file_name):
                     if answer_add_new_file_strip.lower() == 'no':# 修改文件分支
 
                         file_for_revision, early_revision_advice = file_corrector.analyze_running_error_with_all_case_file_content(running_error)
-                        reference_files = file_corrector.find_reference_files_by_solver(file_for_revision)
+                        reference_files = file_corrector.find_reference_files_by_solver(file_for_revision)  # 根据file_for_revision查找参考文件
+
+                        try:
+                            print(file_for_revision, "的参考文件：", reference_files)
+                        except Exception as e:
+                            print(f"打印参考文件时发生错误: {e}")
+                            continue
+
                         # 检查错误是否出现了三次，如果出现了三次，则重写该文件。
                         if file_corrector.analyze_error_repetition(config.error_history):
+                            print("重写文件")
                             file_corrector.rewrite_file(file_for_revision,reference_files)
+                            config.error_history = []  # 重置错误历史记录
+                            with open(f"{config.OUTPUT_PATH}/error_history.txt", "a") as f:
+                                f.write("纠错方案：\n重写文件\n")
                         else:
                             # 检查网格边界（costant/polyMesh/boundary）
-                            check_boundary_module.check_and_change_boundary(config.simulate_requirement, config.OUTPUT_PATH)
+                            # if test_time == 0:
+                            #     check_boundary_module.check_and_change_boundary(config.simulate_requirement, config.OUTPUT_PATH)
 
+                            print("修改文件")
                             advices_for_revision = file_corrector.analyze_running_error_with_reference_files(running_error, file_for_revision,early_revision_advice,reference_files)
-                            
-
                             file_corrector.single_file_corrector2(file_for_revision, advices_for_revision, reference_files)
+
+                            with open(f"{config.OUTPUT_PATH}/error_history.txt", "a") as f:
+                                f.write(f"纠错方案：\n修改文件{file_for_revision}\n参考文件：\n{reference_files}\n修改建议：\n{advices_for_revision}\n")
                     else:#添加文件分支
+                        print("添加缺失文件")
                         file_for_adding = answer_add_new_file_strip
                         file_corrector.add_new_file(file_for_adding)
+                        with open(f"{config.OUTPUT_PATH}/error_history.txt", "a") as f:
+                            f.write(f"纠错方案：\n添加文件{file_for_adding}\n")
 
                 if not config.set_controlDict_time:
                     run_of_case.setup_cfl_control(config.OUTPUT_PATH)
@@ -262,11 +356,14 @@ def main(file_name):
                     run_of_case.convert_mesh(config.OUTPUT_PATH, config.case_grid)
 
             else:
+                with open(f"{config.OUTPUT_PATH}/cycle_index.txt", "w") as f:
+                    f.write(f"Case {config.case_name} run successfully at test_round {test_time}+1.\n")
                 break
                 
         except Exception as e:
             # 捕获所有异常并处理
             running_error = str(e)
+            print("running_error: ", running_error)
 
             # 有跨文件的量纲不匹配
             if file_corrector.detect_dimension_error(running_error):

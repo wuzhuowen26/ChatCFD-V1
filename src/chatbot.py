@@ -210,10 +210,12 @@ def main():
                     })
                     
                     # Get response for question A
-                    with st.chat_message("assistant"):
-                        response_1 = st.session_state.chatbot.get_response(st.session_state.messages)
-                        st.write(response_1)
-                        st.session_state.messages.append({"role": "assistant", "content": response_1, "timestamp": datetime.now().isoformat()})
+                    # with st.chat_message("assistant"):
+                    #     response_1 = st.session_state.chatbot.get_response(st.session_state.messages)
+                    #     st.write(response_1)
+                    #     st.session_state.messages.append({"role": "assistant", "content": response_1, "timestamp": datetime.now().isoformat()})
+                    response_1 = st.session_state.chatbot.get_response(st.session_state.messages)
+                    st.session_state.messages.append({"role": "assistant", "content": response_1, "timestamp": datetime.now().isoformat()})
 
                     st.session_state.file_processed = True
 
@@ -346,7 +348,8 @@ def main():
                         - Ensure no trailing comma after last property
             '''
 
-            st.chat_message("assistant").write(guide_case_choose_prompt)
+            # st.chat_message("assistant").write(guide_case_choose_prompt)
+            st.chat_message("assistant").write(user_answer)
             st.session_state.messages.append({"role": "assistant", "content": guide_case_choose_prompt, "timestamp": datetime.now().isoformat()})
 
             with st.chat_message("assistant"):
@@ -434,19 +437,76 @@ def main():
                 # later, fnae
                 st.session_state.user_answer_finished = True
 
-                
-
         else:   # normal case
-            st.session_state.messages.append({"role": "user", "content": prompt, "timestamp": datetime.now().isoformat()})
-            # Get assistant's response
-            with st.chat_message("assistant"):
-                response = st.session_state.chatbot.get_response(st.session_state.messages)
-                st.write(response)
-                st.session_state.messages.append({"role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
+            # st.session_state.messages.append({"role": "user", "content": prompt, "timestamp": datetime.now().isoformat()})
+            # # Get assistant's response
+            # with st.chat_message("assistant"):
+            #     response = st.session_state.chatbot.get_response(st.session_state.messages)
+            #     st.write(response)
+            #     st.session_state.messages.append({"role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
+
+            # 检查用户是否请求修改现有配置
+            if st.session_state.user_answer_finished:  # and any(keyword in prompt.lower() for keyword in ["modify", "change", "update", "adjust", "revise", "edit", "修改", "更改", "调整", "设置", "solver", "turbulence", "case", "model"])
+                modification_prompt = f'''Based on the user's new request: "{prompt}"
+                
+                Please modify the existing case configuration according to this request.
+                The current configuration is: {json.dumps(config.all_case_dict, indent=2)}
+                
+                Generate an updated JSON with the same structure but incorporating the requested changes.
+                Follow these requirements:
+                1. Maintain the same JSON structure
+                2. Ensure strict JSON syntax compliance
+                3. Use double quotes for keys and string values
+                4. Case_name must only contain [a-zA-Z0-9_]+ 
+                5. Valid solvers: {config.string_of_solver_keywords}
+                6. Valid turbulence models: {config.string_of_turbulence_model}
+                
+                Return ONLY the updated JSON content.
+                '''
+                st.session_state.messages.append({"role": "user", "content": modification_prompt, "timestamp": datetime.now().isoformat()})
+                # 获取修改后的配置
+                with st.chat_message("assistant"):
+                    try:
+                        response = st.session_state.chatbot.get_response(st.session_state.messages)
+                        # 尝试解析JSON响应
+                        updated_config = json.loads(response)
+                        config.all_case_dict = updated_config
+                        
+                        # 转换为Markdown格式显示
+                        qa = qa_modules.QA_NoContext_deepseek_R1()
+                        convert_json_to_md = f'''Convert the provided JSON string into a Markdown format where:
+                            1. Each top-level JSON key becomes a main heading (#)
+                            2. Its corresponding key-value pairs are rendered as unordered list items
+                            3. Maintain the original key-value hierarchy in list format
+                            
+                            The provided json string is as follow:{response}.
+                        '''
+                        md_form = qa.ask(convert_json_to_md)
+                        
+                        # 显示确认信息
+                        decorated_response = f'''Based on your request, I've updated the case configuration to:\n{md_form}'''
+                        st.write(decorated_response)
+                        # 添加用户友好的响应到对话历史
+                        st.session_state.messages.append({"role": "assistant", "content": decorated_response, "timestamp": datetime.now().isoformat()})
+                    except json.JSONDecodeError:
+                        st.write("I couldn't process that as a valid case modification. Please check your request and try again.")
+                        st.session_state.messages.append({"role": "assistant", "content": "I couldn't process that as a valid case modification. Please check your request and try again.", "timestamp": datetime.now().isoformat()})
+            else:
+                # 原有的普通对话处理逻辑
+                st.session_state.messages.append({"role": "user", "content": prompt, "timestamp": datetime.now().isoformat()})
+                # Get assistant's response
+                with st.chat_message("assistant"):
+                    response = st.session_state.chatbot.get_response(st.session_state.messages)
+                    st.write(response)
+                    st.session_state.messages.append({"role": "assistant", "content": response, "timestamp": datetime.now().isoformat()})
 
     if st.session_state.file_processed and st.session_state.user_answer_finished and not st.session_state.uploaded_grid:
         # 保存信息仿真算例设置内容（已经由用户确定）
         config.simulate_requirement = md_form
+        # print("Simulate requirement is:")
+        # print(config.simulate_requirement)
+        # print("all_case_dict is:")
+        # print(config.all_case_dict)
 
         st.write("If you don't have further requirement on the case setup. \n**Please upload the mesh of the Fluent .msh format.**")
 
@@ -457,13 +517,26 @@ def main():
         #     preprocess_OF_tutorial.main()
         #     config.flag_OF_tutorial_processed = True
         preprocess_OF_tutorial.read_in_processed_merged_OF_cases()
+
+        print("config.all_case_dict is:", config.all_case_dict)
+        
         for key, value in config.all_case_dict.items():
             case_name = value["case_name"]
             print(f"***** start processing {key}: {case_name} *****")
             solver = value["solver"]
-            turbulence_model = value["turbulence_model"]
+
+            try:
+                turbulence_model = value["turbulence_model"]
+            except KeyError:
+                value["turbulence_model"] = None
+                turbulence_model = None
+
+            if turbulence_model not in config.turbulence_model_keywords:
+                turbulence_model = None
 
             case_specific_description = value["case_specific_description"]
+
+            other_physical_model = value["other_physical_model"]
 
             main_run_chatcfd.test_solver = solver
 
@@ -472,6 +545,14 @@ def main():
             main_run_chatcfd.test_case_name = case_name
 
             main_run_chatcfd.test_case_description = case_specific_description
+            config.case_description = case_specific_description
+
+            other_model_list = [
+                "GRI", "TDAC", "LTS","common","Maxwell","Stokes"
+            ]
+            if other_physical_model not in other_model_list:
+                other_physical_model = None
+            config.other_physical_model = other_physical_model
 
             main_run_chatcfd.run_case()
 

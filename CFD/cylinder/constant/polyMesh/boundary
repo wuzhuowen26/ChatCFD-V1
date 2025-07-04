@@ -51,7 +51,7 @@ FoamFile
     }
     defaultFaces
     {
-        type            empty;
+        type            patch;
         nFaces          15200;
         startFace       15420;
     }

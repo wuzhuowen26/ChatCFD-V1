@@ -20,6 +20,12 @@ def convert_mesh(case_path, grid_path):
         subprocess.run(command, check=True)
         print("网格转换成功完成")
         config.mesh_convert_success = True
+        # 保存最初的boundary文件
+        boundary_path = f"{config.OUTPUT_PATH}/constant/polyMesh/boundary"
+        with open(boundary_path, "r", encoding="utf-8") as file:
+            boundary_content = file.read()
+        config.boundary_init = boundary_content
+
         return True
     except subprocess.CalledProcessError as e:
         print(f"网格转换失败: {e}")
@@ -63,6 +69,8 @@ def setup_cfl_control(case_path, max_co=0.6):
                 control_dict["deltaT"] = 1e-8
             else:
                 control_dict["deltaT"] = 1e-5
+            control_dict["purgeWrite"] = 20    # 只保留最新的10个时间步
+            control_dict["minDeltaT"] = 1e-7   # 设置最小时间步长
         
         # 保存修改
         control_dict.writeFile()

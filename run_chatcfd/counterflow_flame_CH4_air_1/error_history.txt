@@ -1,0 +1,642 @@
+****************error_history****************
+=====Test round 0=====
+运行错误:
+
+
+--> FOAM FATAL ERROR: (openfoam-2406 patch=241212)
+cannot find file "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_1/constant/thermophysicalProperties"
+
+    From virtual Foam::autoPtr<Foam::ISstream> Foam::fileOperations::uncollatedFileOperation::readStream(Foam::regIOobject&, const Foam::fileName&, const Foam::word&, bool) const
+    in file global/fileOperations/uncollatedFileOperation/uncollatedFileOperation.C at line 629.
+
+FOAM exiting
+
+
+纠错方案：
+添加文件constant/thermophysicalProperties
+=====Test round 1=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+
+    patch type 'patch' not constraint type 'empty'
+    for patch frontAndBack of field p in file "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_1/0/p"
+
+file: 0/p/boundaryField/frontAndBack at line 30.
+
+    From Foam::emptyFvPatchField<Type>::emptyFvPatchField(const Foam::fvPatch&, const Foam::DimensionedField<Type, Foam::volMesh>&, const Foam::dictionary&) [with Type = double]
+    in file fields/fvPatchFields/constraint/empty/emptyFvPatchField.C at line 84.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/p
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      p;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [1 -1 -2 0 0 0 0];\n\ninternalField   uniform 1e5;\n\nboundaryField\n{\n    \"(fuel|air)\"\n    {\n        type            zeroGradient;\n    }\n\n    outlet\n    {\n        type            totalPressure;\n        p0              $internalField;\n    }\n\n    frontAndBack\n    {\n        type            empty;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error arises because the mesh defines 'frontAndBack' as a geometric patch (type 'patch'), but the field 'p' attempts to apply a constraint type 'empty' which is incompatible. Correct the mesh by setting 'frontAndBack' to type 'empty' in 'constant/polyMesh/boundary' (ensure nFaces and startFace align with 2D extrusion). The '0/p' file is correct as per the paper: retain 'type empty' for 'frontAndBack'. Do not modify '0/p'—it properly implements boundary conditions. Error resolution requires mesh correction, not field file alteration.
+=====Test round 2=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+
+    patch type 'patch' not constraint type 'empty'
+    for patch frontAndBack of field p in file "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_1/0/p"
+
+file: 0/p/boundaryField/frontAndBack at line 30.
+
+    From Foam::emptyFvPatchField<Type>::emptyFvPatchField(const Foam::fvPatch&, const Foam::DimensionedField<Type, Foam::volMesh>&, const Foam::dictionary&) [with Type = double]
+    in file fields/fvPatchFields/constraint/empty/emptyFvPatchField.C at line 84.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/p
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      p;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [1 -1 -2 0 0 0 0];\n\ninternalField   uniform 1e5;\n\nboundaryField\n{\n    \"(fuel|air)\"\n    {\n        type            zeroGradient;\n    }\n\n    outlet\n    {\n        type            totalPressure;\n        p0              $internalField;\n    }\n\n    frontAndBack\n    {\n        type            empty;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error arises because the 'frontAndBack' patch in the mesh is defined as type 'patch', not 'empty', conflicting with the 'empty' constraint in '0/p'. To resolve: 
+
+1. Open the mesh boundary file 'constant/polyMesh/boundary'.  
+2. Locate the 'frontAndBack' entry under boundaryField.  
+3. Change its type from 'patch' to 'empty'.  
+4. Ensure the 'frontAndBack' entry in '0/p' retains 'type empty' to maintain the 2D simulation setup.  
+The '0/p' file is correct per the paper; the mesh must align with the 'empty' constraint. Do not modify '0/p' boundary conditions for 'frontAndBack'.
+=====Test round 3=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+
+    patch type 'patch' not constraint type 'empty'
+    for patch frontAndBack of field p in file "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_1/0/p"
+
+file: 0/p/boundaryField/frontAndBack at line 30.
+
+    From Foam::emptyFvPatchField<Type>::emptyFvPatchField(const Foam::fvPatch&, const Foam::DimensionedField<Type, Foam::volMesh>&, const Foam::dictionary&) [with Type = double]
+    in file fields/fvPatchFields/constraint/empty/emptyFvPatchField.C at line 84.
+
+FOAM exiting
+
+
+纠错方案：
+重写文件
+=====Test round 4=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+
+    patch type 'patch' not constraint type 'empty'
+    for patch frontAndBack of field p in file "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_1/0/p"
+
+file: 0/p/boundaryField/frontAndBack at line 28.
+
+    From Foam::emptyFvPatchField<Type>::emptyFvPatchField(const Foam::fvPatch&, const Foam::DimensionedField<Type, Foam::volMesh>&, const Foam::dictionary&) [with Type = double]
+    in file fields/fvPatchFields/constraint/empty/emptyFvPatchField.C at line 84.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/p
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      p;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [1 -1 -2 0 0 0 0];\n\ninternalField   uniform 1e5;\n\nboundaryField\n{\n    \"(fuel|air)\"\n    {\n        type            zeroGradient;\n    }\n\n    outlet\n    {\n        type            totalPressure;\n        p0              $internalField;\n    }\n\n    frontAndBack\n    {\n        type            empty;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error occurs because the 'frontAndBack' patch in **0/p** uses 'type empty;', but the mesh defines this patch as a general 'patch' type instead of an 'empty' geometric constraint. To resolve this without altering the paper's boundary conditions:  
+1. Open **constant/polyMesh/boundary** and locate the 'frontAndBack' entry.  
+2. Change its type from 'patch' to 'empty'. Example correction:  
+```  
+frontAndBack  
+{  
+    type            empty;  
+    ...  
+}  
+```  
+3. Save the modified **boundary** file. Do NOT modify **0/p** as 'type empty;' is valid once the mesh patch type matches.  
+
+The error is caused by a mesh definition mismatch, not **0/p**. The current **0/p** file adheres to the paper's setup.
+=====Test round 5=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+
+    patch type 'patch' not constraint type 'empty'
+    for patch frontAndBack of field p in file "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_1/0/p"
+
+file: 0/p/boundaryField/frontAndBack at line 28.
+
+    From Foam::emptyFvPatchField<Type>::emptyFvPatchField(const Foam::fvPatch&, const Foam::DimensionedField<Type, Foam::volMesh>&, const Foam::dictionary&) [with Type = double]
+    in file fields/fvPatchFields/constraint/empty/emptyFvPatchField.C at line 84.
+
+FOAM exiting
+
+
+纠错方案：
+网格边界条件的修正
+纠错方案：
+修改文件0/p
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      p;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [1 -1 -2 0 0 0 0];\n\ninternalField   uniform 1e5;\n\nboundaryField\n{\n    \"(fuel|air)\"\n    {\n        type            zeroGradient;\n    }\n\n    outlet\n    {\n        type            totalPressure;\n        p0              $internalField;\n    }\n\n    frontAndBack\n    {\n        type            empty;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+1. Open 'constant/polyMesh/boundary' file. Locate the frontAndBack patch definition.
+2. Ensure frontAndBack type is set to 'empty', not 'patch', in the mesh boundary file:
+    ```
+    frontAndBack
+    {
+        type            empty;
+        ...
+    }
+    ```
+3. If frontAndBack was incorrectly defined as type 'patch', correct it to 'empty'. This aligns mesh geometry with boundary condition requirements for 2D simulations.
+4. Keep '0/p' file's frontAndBack boundary condition as type 'empty' to maintain paper-specified conditions. Do NOT modify field files - error originates from mesh/patch mismatch.
+5. Re-run the case after ensuring mesh patches match field boundary condition types.
+=====Test round 6=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'CHEMKINFile' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_1/constant/thermophysicalProperties"
+
+
+file: constant/thermophysicalProperties at line 13 to 49.
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = Foam::fileName]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/thermophysicalProperties
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      thermophysicalProperties;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nthermoType\n{\n    type            hePsiThermo;\n    mixture         reactingMixture;\n    transport       sutherland;\n    thermo          janaf;\n    energy          sensibleEnthalpy;\n    equationOfState perfectGas;\n    specie          specie;\n}\n\ninertSpecie         N2;\n\nchemistryReader     foamChemistryReader;\n\nfoamChemistryFile   \"<constant>/reactions\";\n\nfoamChemistryThermoFile \"<constant>/thermo.compressibleGas\";\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error occurs because 'CHEMKINFile' entry is missing in thermophysicalProperties. The dictionary defines reactingMixture but uses foamChemistryReader (per the tutorial reference), not CHEMKIN. Modify constant/thermophysicalProperties: Remove any reference to CHEMKINFile. Insert chemistryReader specification. Add inertSpecie and foamChemistryFile paths. Insert these lines after thermoType: inertSpecie N2; chemistryReader foamChemistryReader; foamChemistryFile "<constant>/reactions"; foamChemistryThermoFile "<constant>/thermo.compressibleGas";. Delete any existing CHEMKINFile entries. Maintain the mixture section and species list as-is since they match initial conditions.
+=====Test round 7=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+File "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_1/constant/thermo.compressibleGas" does not exist
+
+file: constant/thermo.compressibleGas at line 1.
+
+    From Foam::IFstream& Foam::IFstream::operator()() const
+    in file db/IOstreams/Fstreams/IFstream.C at line 312.
+
+FOAM exiting
+
+
+纠错方案：
+添加文件constant/thermo.compressibleGas
+=====Test round 8=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'species' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_1/constant/reactions"
+
+
+file: constant/reactions at line 13 to 17.
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = Foam::List<Foam::word>]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/reactions
+参考文件：
+{
+  "sample_file_0": "\nelements\n(\nO\nC\nH\nN\n);\n\n\nspecies\n(\n    O2\n    H2O\n    CH4\n    CO2\n    N2\n);\n\nreactions\n{\n    methaneReaction\n    {\n        type     irreversibleArrheniusReaction;\n        reaction \"CH4 + 2O2 = CO2 + 2H2O\";\n        A        5.2e16;\n        beta     0;\n        Ta       14906;\n    }\n}\n"
+}
+修改建议：
+
+
+The error occurs because the 'species' list is missing from the required thermophysical configuration. OpenFOAM expects species definitions in thermophysicalProperties, not in reactions. Correct by: 1. Create/edit 'constant/thermophysicalProperties'. 2. Define 'species ( O2 CH4 CO2 H2O N2 );' inside the mixture/reactingMixture section. 3. Keep reactions file unchanged (species entry not allowed there). This ensures species are declared in the correct location, resolving the dictionary lookup error.
+=====Test round 9=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'species' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_1/constant/reactions"
+
+
+file: constant/reactions at line 13 to 17.
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = Foam::List<Foam::word>]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/reactions
+参考文件：
+{
+  "sample_file_0": "\nelements\n(\nO\nC\nH\nN\n);\n\n\nspecies\n(\n    O2\n    H2O\n    CH4\n    CO2\n    N2\n);\n\nreactions\n{\n    methaneReaction\n    {\n        type     irreversibleArrheniusReaction;\n        reaction \"CH4 + 2O2 = CO2 + 2H2O\";\n        A        5.2e16;\n        beta     0;\n        Ta       14906;\n    }\n}\n"
+}
+修改建议：
+
+
+The error occurs because the 'species' list is missing in 'constant/reactions'. Add the 'species' entry before reactions. Correct the file as:
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       chemistryReaction;
+    object      reactions;
+}
+
+species
+(
+    CH4
+    O2
+    CO2
+    H2O
+    N2
+);
+
+reactions
+{
+    reaction1
+    {
+        type            irreversibleArrheniusReaction;
+        reaction        "CH4 + 2O2 = CO2 + 2H2O";
+        A               5.2e16;
+        beta            0;
+        Ta              14906;
+    }
+}
+
+Step-by-step fix:
+1. Insert the 'species' list containing all participating species (CH4, O2, CO2, H2O, N2) after the FoamFile header.
+2. Ensure the species names exactly match those defined in initial/boundary conditions.
+3. Maintain the original reaction definition and numerical parameters to preserve chemistry setup.
+=====Test round 10=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Required entry 'inletValue' missing in dictionary "0/CH4/boundaryField/outlet"
+
+
+file: 0/CH4/boundaryField/outlet at line 27 to 28.
+
+    From bool Foam::Field<Type>::assign(const Foam::word&, const Foam::dictionary&, Foam::label, Foam::IOobjectOption::readOption) [with Type = double; Foam::label = int]
+    in file ./src/OpenFOAM/lnInclude/Field.C at line 297.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/CH4
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      CH4;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [0 0 0 0 0 0 0];\n\ninternalField   uniform 0;\n\nboundaryField\n{\n    fuel\n    {\n        type            fixedValue;\n        value           uniform 1;\n    }\n\n    air\n    {\n        type            fixedValue;\n        value           uniform 0;\n    }\n\n    outlet\n    {\n        type            inletOutlet;\n        inletValue      uniform 0;\n        value           uniform 1;\n    }\n\n    frontAndBack\n    {\n        type            empty;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: Open the file '0/CH4' in a text editor.  
+Step 2: Locate the 'outlet' boundary definition under 'boundaryField'.  
+Step 3: Add the missing mandatory keyword 'inletValue' after the 'type' declaration. Set its value to 'uniform 0' to match the initial conditions paper's "value" entry for CH4/outlet.  
+Step 4: Confirm the correction matches the tutorial structure where 'inletOutlet' requires both 'inletValue' and 'value' entries. Keep the original 'value uniform 0' unchanged.  
+Revised outlet section:  
+outlet  
+{  
+    type            inletOutlet;  
+    inletValue      uniform 0;  
+    value           uniform 0;  
+}  
+
+Root cause: The 'inletOutlet' boundary condition requires 'inletValue' to define the inlet concentration during reverse flow. This keyword is mandatory in OpenFOAM's implementation but was omitted in the original file. No removal of other content is needed - all existing entries comply with the paper's requirements.
+=====Test round 11=====
+运行错误:
+
+
+--> FOAM FATAL ERROR: (openfoam-2406 patch=241212)
+Sum of mass fractions is zero for species 5(CH4 O2 CO2 H2O N2)
+    Min of mass fraction sum 0
+
+    From void Foam::multiComponentMixture<ThermoType>::correctMassFractions() [with ThermoType = Foam::sutherlandTransport<Foam::species::thermo<Foam::janafThermo<Foam::perfectGas<Foam::specie> >, Foam::sensibleEnthalpy> >]
+    in file lnInclude/multiComponentMixture.C at line 65.
+
+FOAM exiting
+
+
+纠错方案：
+进行化学体积分数之和不为1的修正
+=====Test round 12=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'chemistry' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/counterflow_flame_CH4_air_1/constant/chemistryProperties"
+
+
+file: constant/chemistryProperties at line 11 to 14.
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = Foam::Switch]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/chemistryProperties
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      chemistryProperties;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nchemistryType\n{\n    solver          EulerImplicit;\n}\n\nchemistry           on;\n\ninitialChemicalTimeStep 1e-07;\n\nEulerImplicitCoeffs\n{\n    cTauChem        1;\n    equilibriumRateLimiter off;\n}\n\nodeCoeffs\n{\n    solver          Rosenbrock34;\n    absTol          1e-12;\n    relTol          0.01;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Add the missing 'chemistry' entry at the top level of constant/chemistryProperties. Insert the line 'chemistry on;' between chemistryType block & initialChemicalTimeStep. Ensure the corrected file reads:
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      chemistryProperties;
+}
+
+chemistryType
+{
+    solver          EulerImplicit;
+}
+
+chemistry           on;
+
+initialChemicalTimeStep 1e-4;
+
+Reason: The OpenFOAM solver requires explicit activation of chemistry via the 'chemistry' keyword. The tutorial reference shows this entry must exist as a direct dictionary entry (not nested). The error occurs because the parser cannot find this mandatory switch. The boundary condition constraints are preserved as no thermo/physical models are modified.
+=====Test round 13=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'EulerImplicitCoeffs' not found in dictionary "constant/chemistryProperties"
+
+
+file: constant/chemistryProperties at line 11 to 16.
+
+    From Foam::dictionary& Foam::dictionary::subDict(const Foam::word&, Foam::keyType::option)
+    in file db/dictionary/dictionary.C at line 477.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/chemistryProperties
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      chemistryProperties;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nchemistryType\n{\n    solver          EulerImplicit;\n}\n\nchemistry           on;\n\ninitialChemicalTimeStep 1e-07;\n\nEulerImplicitCoeffs\n{\n    cTauChem        1;\n    equilibriumRateLimiter off;\n}\n\nodeCoeffs\n{\n    solver          Rosenbrock34;\n    absTol          1e-12;\n    relTol          0.01;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+1. Open `constant/chemistryProperties` in a text editor. 
+2. After `chemistryType { solver EulerImplicit; }`, insert:
+`EulerImplicitCoeffs { cTauChem 1; equilibriumRateLimiter off; }`
+3. Add nodeCoeffs configuration from the tutorial sample below initialChemicalTimeStep:
+`nodeCoeffs { solver Rosenbrock34; absTol 1e-12; relTol 0.01; }`
+4. Ensure no removal of existing valid entries. The EulerImplicitCoeffs sub-dictionary is mandatory for EulerImplicit solver configuration in chemistryProperties. NodeCoeffs belongs properly in this file per tutorial examples.
+=====Test round 14=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'rho' not found in dictionary "system/fvSolution/solvers"
+
+
+file: system/fvSolution/solvers at line 13 to 42.
+
+    From const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 457.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件system/fvSolution
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      fvSolution;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nsolvers\n{\n    \"rho.*\"\n    {\n        solver          diagonal;\n    }\n\n    p\n    {\n        solver           PCG;\n        preconditioner   DIC;\n        tolerance        1e-6;\n        relTol           0.1;\n    }\n\n    pFinal\n    {\n        $p;\n        tolerance        1e-6;\n        relTol           0.0;\n    }\n\n    \"(U|h|k|epsilon)\"\n    {\n        solver          PBiCGStab;\n        preconditioner  DILU;\n        tolerance       1e-6;\n        relTol          0.1;\n    }\n\n    \"(U|h|k|epsilon)Final\"\n    {\n        $U;\n        relTol          0;\n    }\n\n    Yi\n    {\n        $hFinal;\n    }\n}\n\nPIMPLE\n{\n    momentumPredictor no;\n    nOuterCorrectors  1;\n    nCorrectors       2;\n    nNonOrthogonalCorrectors 0;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error occurs because the 'rho' solver entry is missing in system/fvSolution/solvers. Add a 'rho' solver configuration by inserting this block inside the solvers dictionary:
+
+"rho.*"
+{
+    solver          diagonal;
+}
+
+Reason: The error explicitly states missing 'rho' entry in fvSolution/solvers. The tutorial sample uses diagonal solver for "rho.*" which handles density in compressible cases. This addition won't affect initial/boundary conditions since it only configures solver behavior, not physical properties.
+=====Test round 15=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'div(((rho*nuEff)*dev2(T(grad(U)))))' not found in dictionary "system/fvSchemes/divSchemes"
+
+
+file: system/fvSchemes/divSchemes at line 21 to 25.
+
+    From const Foam::entry& Foam::dictionary::lookupEntry(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 363.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件system/fvSchemes
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      fvSchemes;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nddtSchemes\n{\n    default         Euler;\n}\n\ngradSchemes\n{\n    default         Gauss linear;\n}\n\ndivSchemes\n{\n    default         none;\n\n    div(phi,U)      Gauss limitedLinearV 1;\n\n    div(phi,Yi_h)   Gauss limitedLinear 1;\n    div(phi,K)      Gauss limitedLinear 1;\n    div(phid,p)     Gauss limitedLinear 1;\n    div(phi,epsilon) Gauss limitedLinear 1;\n    div(phi,k)      Gauss limitedLinear 1;\n    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;\n}\n\nlaplacianSchemes\n{\n    default         Gauss linear orthogonal;\n}\n\ninterpolationSchemes\n{\n    default         linear;\n}\n\nsnGradSchemes\n{\n    default         orthogonal;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error is caused by a missing `div` scheme entry for `div(((rho*nuEff)*dev2(T(grad(U)))))` in `system/fvSchemes/divSchemes`. Compare with the tutorial: the entry must exactly match the solver's required term.  
+Step 1: Open `system/fvSchemes`.  
+Step 2: In `divSchemes`, replace `div((nuEff*dev2(T(grad(U)))))` with `div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;`. Ensure the parentheses match the error's syntax.  
+Step 3: Verify no other syntax errors exist (e.g., missing brackets). The revision aligns with the tutorial and maintains initial/boundary conditions.
+=====Test round 16=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'UFinal' not found in dictionary "system/fvSolution/solvers"
+
+
+file: system/fvSolution/solvers at line 13 to 46.
+
+    From const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 457.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件system/fvSolution
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      fvSolution;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nsolvers\n{\n    \"rho.*\"\n    {\n        solver          diagonal;\n    }\n\n    p\n    {\n        solver           PCG;\n        preconditioner   DIC;\n        tolerance        1e-6;\n        relTol           0.1;\n    }\n\n    pFinal\n    {\n        $p;\n        tolerance        1e-6;\n        relTol           0.0;\n    }\n\n    \"(U|h|k|epsilon)\"\n    {\n        solver          PBiCGStab;\n        preconditioner  DILU;\n        tolerance       1e-6;\n        relTol          0.1;\n    }\n\n    \"(U|h|k|epsilon)Final\"\n    {\n        $U;\n        relTol          0;\n    }\n\n    Yi\n    {\n        $hFinal;\n    }\n}\n\nPIMPLE\n{\n    momentumPredictor no;\n    nOuterCorrectors  1;\n    nCorrectors       2;\n    nNonOrthogonalCorrectors 0;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+To fix the error, add the 'UFinal' entry in the solvers section. The error occurs because the solver expects a 'UFinal' definition for final iterations of velocity. In the provided 'system/fvSolution', 'U' is defined but lacks its 'Final' counterpart. Insert this block after the 'U' solver definition:  
+UFinal  
+{  
+    $U;  
+    relTol          0;  
+}  
+This inherits all settings from 'U' and sets relTol=0 for final convergence. The correction aligns with the 'pFinal' structure in the file and the tutorial's handling of '*Final' entries. No boundary/initial conditions are affected since this only modifies solver tolerances.
+=====Test round 17=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'div(phi,Yi_h)' not found in dictionary "system/fvSchemes/divSchemes"
+
+
+file: system/fvSchemes/divSchemes at line 21 to 25.
+
+    From const Foam::entry& Foam::dictionary::lookupEntry(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 363.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件system/fvSchemes
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      fvSchemes;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nddtSchemes\n{\n    default         Euler;\n}\n\ngradSchemes\n{\n    default         Gauss linear;\n}\n\ndivSchemes\n{\n    default         none;\n\n    div(phi,U)      Gauss limitedLinearV 1;\n\n    div(phi,Yi_h)   Gauss limitedLinear 1;\n    div(phi,K)      Gauss limitedLinear 1;\n    div(phid,p)     Gauss limitedLinear 1;\n    div(phi,epsilon) Gauss limitedLinear 1;\n    div(phi,k)      Gauss limitedLinear 1;\n    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;\n}\n\nlaplacianSchemes\n{\n    default         Gauss linear orthogonal;\n}\n\ninterpolationSchemes\n{\n    default         linear;\n}\n\nsnGradSchemes\n{\n    default         orthogonal;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Add the missing entry 'div(phi,Yi_h)' to the divSchemes section in system/fvSchemes. Modify line 21-25 by inserting "div(phi,Yi_h)   Gauss limitedLinear 1;" below "div(phi,Yi)..." while preserving all existing entries. The corrected divSchemes block should read: 
+
+divSchemes
+{
+    default         none;
+    div(phi,U)      Gauss linearUpwindV grad(U);
+    div(phi,Yi)     Gauss limitedLinear 1;
+    div(phi,Yi_h)   Gauss limitedLinear 1;
+    div(phi,e)      Gauss limitedLinear 1;
+    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
+}
+
+This addresses the fatal error caused by the solver requiring a divergence scheme for Yi_h (likely enthalpy-mixed species transport) that wasn't defined. The format matches both the tutorial structure and your existing scheme style without altering boundary conditions.
+=====Test round 18=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'div(phi,K)' not found in dictionary "system/fvSchemes/divSchemes"
+
+
+file: system/fvSchemes/divSchemes at line 21 to 26.
+
+    From const Foam::entry& Foam::dictionary::lookupEntry(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 363.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件system/fvSchemes
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      fvSchemes;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nddtSchemes\n{\n    default         Euler;\n}\n\ngradSchemes\n{\n    default         Gauss linear;\n}\n\ndivSchemes\n{\n    default         none;\n\n    div(phi,U)      Gauss limitedLinearV 1;\n\n    div(phi,Yi_h)   Gauss limitedLinear 1;\n    div(phi,K)      Gauss limitedLinear 1;\n    div(phid,p)     Gauss limitedLinear 1;\n    div(phi,epsilon) Gauss limitedLinear 1;\n    div(phi,k)      Gauss limitedLinear 1;\n    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;\n}\n\nlaplacianSchemes\n{\n    default         Gauss linear orthogonal;\n}\n\ninterpolationSchemes\n{\n    default         linear;\n}\n\nsnGradSchemes\n{\n    default         orthogonal;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error occurs because 'div(phi,K)' is required by the solver but missing in system/fvSchemes. Add this entry under divSchemes using the scheme from the tutorial. Modify system/fvSchemes as follows:
+
+1. Open system/fvSchemes
+2. Locate the divSchemes section
+3. Insert line: div(phi,K)      Gauss limitedLinear 1;
+4. Maintain existing entries and initial/boundary conditions
+5. Ensure no spaces/tabs in line formatting
+
+The correction addresses the missing mandatory divergence scheme for the kinetic energy term (K) while preserving the original setup. This belongs in fvSchemes as divergence terms are solver-specific discretization settings.
+=====Test round 19=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'hFinal' not found in dictionary "system/fvSolution/solvers"
+
+
+file: system/fvSolution/solvers at line 13 to 51.
+
+    From const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 457.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件system/fvSolution
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      fvSolution;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nsolvers\n{\n    \"rho.*\"\n    {\n        solver          diagonal;\n    }\n\n    p\n    {\n        solver           PCG;\n        preconditioner   DIC;\n        tolerance        1e-6;\n        relTol           0.1;\n    }\n\n    pFinal\n    {\n        $p;\n        tolerance        1e-6;\n        relTol           0.0;\n    }\n\n    \"(U|h|k|epsilon)\"\n    {\n        solver          PBiCGStab;\n        preconditioner  DILU;\n        tolerance       1e-6;\n        relTol          0.1;\n    }\n\n    \"(U|h|k|epsilon)Final\"\n    {\n        $U;\n        relTol          0;\n    }\n\n    Yi\n    {\n        $hFinal;\n    }\n}\n\nPIMPLE\n{\n    momentumPredictor no;\n    nOuterCorrectors  1;\n    nCorrectors       2;\n    nNonOrthogonalCorrectors 0;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error occurs because the solver entry 'hFinal' is referenced but not defined in 'system/fvSolution/solvers'. Add 'hFinal' by inheriting from an 'h' solver definition. Revise the 'solvers' section in system/fvSolution as follows:
+
+solvers
+{
+    "rho.*" { solver diagonal; }
+
+    p { solver PCG; preconditioner DIC; tolerance 1e-7; relTol 0.05; }
+    pFinal { $p; relTol 0; }
+
+    "Yi.*" { solver PBiCGStab; preconditioner DILU; tolerance 1e-9; relTol 0; }
+
+    h { solver PBiCGStab; preconditioner DILU; tolerance 1e-9; relTol 0; }
+    hFinal { $h; relTol 0; }
+
+    U { solver PBiCGStab; preconditioner DILU; tolerance 1e-9; relTol 0; }
+    UFinal { $U; relTol 0; }
+}
+
+Delete the "e.*" solver block since enthalpy (h) is being used instead of internal energy (e) in this configuration. Keep other entries unchanged to preserve initial/boundary conditions. The fix adds explicit definitions for h/hFinal while removing conflicts with thermo variables.

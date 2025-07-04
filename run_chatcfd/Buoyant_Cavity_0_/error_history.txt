@@ -1,0 +1,653 @@
+****************error_history****************
+=====Test round 0=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'dimensions' not found in dictionary "0/p"
+
+
+file: 0/p at line 9 to 27.
+
+    From bool Foam::dimensionSet::readEntry(const Foam::word&, const Foam::dictionary&, Foam::IOobjectOption::readOption)
+    in file dimensionSet/dimensionSetIO.C at line 442.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/p
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      p;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [1 -1 -2 0 0 0 0];\n\ninternalField   uniform 1e5;\n\nboundaryField\n{\n    frontAndBack\n    {\n        type            calculated;\n        value           $internalField;\n    }\n\n    topAndBottom\n    {\n        type            calculated;\n        value           $internalField;\n    }\n\n    hot\n    {\n        type            calculated;\n        value           $internalField;\n    }\n\n    cold\n    {\n        type            calculated;\n        value           $internalField;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Add the 'dimensions' entry immediately after the FoamFile header in 0/p. The correct dimensions for pressure are [1 -1 -2 0 0 0 0]. Insert this line between the FoamFile block and internalField declaration without modifying boundary conditions. Revised 0/p content:
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      p;
+}
+
+dimensions      [1 -1 -2 0 0 0 0];
+
+internalField   uniform 1e5;
+
+boundaryField
+{
+    hot
+    {
+        type        zeroGradient;
+    }
+    cold
+    {
+        type        zeroGradient;
+    }
+    topAndBottom
+    {
+        type        zeroGradient;
+    }
+    frontAndBack
+    {
+        type        zeroGradient;
+    }
+}
+=====Test round 1=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'dimensions' not found in dictionary "0/T"
+
+
+file: 0/T at line 9 to 29.
+
+    From bool Foam::dimensionSet::readEntry(const Foam::word&, const Foam::dictionary&, Foam::IOobjectOption::readOption)
+    in file dimensionSet/dimensionSetIO.C at line 442.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/T
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      T;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [0 0 0 1 0 0 0];\n\ninternalField   uniform 293;\n\nboundaryField\n{\n    frontAndBack\n    {\n        type            zeroGradient;\n    }\n\n    topAndBottom\n    {\n        type            zeroGradient;\n    }\n\n    hot\n    {\n        type            fixedValue;\n        value           uniform 307.75; // 34.6 degC\n    }\n\n    cold\n    {\n        type            fixedValue;\n        value           uniform 288.15; // 15 degC\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Add the missing 'dimensions' entry after the FoamFile header in 0/T to specify temperature units. Insert this line:
+dimensions      [0 0 0 1 0 0 0];
+between the closing brace of the FoamFile block and the internalField declaration. This defines temperature in Kelvin ([0 0 0 1 0 0 0]) without altering initial/boundary values. The error occurs because OpenFOAM requires dimensionedScalar fields to explicitly declare units. Keep all existing initialField/boundaryField settings unchanged.
+=====Test round 2=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'dimensions' not found in dictionary "0/U"
+
+
+file: 0/U at line 9 to 27.
+
+    From bool Foam::dimensionSet::readEntry(const Foam::word&, const Foam::dictionary&, Foam::IOobjectOption::readOption)
+    in file dimensionSet/dimensionSetIO.C at line 442.
+
+FOAM exiting
+
+
+纠错方案：
+重写文件
+=====Test round 3=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'dimensions' not found in dictionary "0/alphat"
+
+
+file: 0/alphat at line 9 to 31.
+
+    From bool Foam::dimensionSet::readEntry(const Foam::word&, const Foam::dictionary&, Foam::IOobjectOption::readOption)
+    in file dimensionSet/dimensionSetIO.C at line 442.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/alphat
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      alphat;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [1 -1 -1 0 0 0 0];\n\ninternalField   uniform 0;\n\nboundaryField\n{\n    frontAndBack\n    {\n        type            compressible::alphatWallFunction;\n        Prt             0.85;\n        value           uniform 0;\n    }\n\n    topAndBottom\n    {\n        type            compressible::alphatWallFunction;\n        Prt             0.85;\n        value           uniform 0;\n    }\n\n    hot\n    {\n        type            compressible::alphatWallFunction;\n        Prt             0.85;\n        value           uniform 0;\n    }\n\n    cold\n    {\n        type            compressible::alphatWallFunction;\n        Prt             0.85;\n        value           uniform 0;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: Add the missing 'dimensions' entry after the FoamFile block. Insert line:  
+'dimensions      [1 -1 -1 0 0 0 0];'  
+Step 2: Ensure 'Prt' (Prandtl number) is specified in each 'compressible::alphatWallFunction' boundary entry. Add 'Prt 0.85;' under each boundary patch (hot, cold, topAndBottom, frontAndBack) to match the tutorial. Do NOT remove boundary conditions or initial value 'uniform 0;' required by the paper.
+=====Test round 4=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'dimensions' not found in dictionary "0/nut"
+
+
+file: 0/nut at line 9 to 31.
+
+    From bool Foam::dimensionSet::readEntry(const Foam::word&, const Foam::dictionary&, Foam::IOobjectOption::readOption)
+    in file dimensionSet/dimensionSetIO.C at line 442.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/nut
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      nut;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [0 2 -1 0 0 0 0];\n\ninternalField   uniform 0;\n\nboundaryField\n{\n    frontAndBack\n    {\n        type            nutUWallFunction;\n        value           uniform 0;\n    }\n\n    topAndBottom\n    {\n        type            nutUWallFunction;\n        value           uniform 0;\n    }\n\n    hot\n    {\n        type            nutUWallFunction;\n        value           uniform 0;\n    }\n\n    cold\n    {\n        type            nutUWallFunction;\n        value           uniform 0;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: Add 'dimensions' entry after FoamFile header. The error occurs because OpenFOAM requires dimension specifications for all field files. Insert this line:  
+dimensions      [0 2 -1 0 0 0 0];  
+Step 2: Ensure this line is placed immediately after the closing brace } of the FoamFile block and before internalField. This matches the structure in the tutorial reference. No boundary condition values or types need modification as they comply with the paper's requirements. Do NOT remove any existing entries except for correcting formatting.
+=====Test round 5=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'method' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0/system/fvSchemes/wallDist"
+
+
+file: system/fvSchemes/wallDist
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = Foam::word]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件system/fvSchemes
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      fvSchemes;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nddtSchemes\n{\n    default steadyState;\n}\n\ngradSchemes\n{\n    default         Gauss linear;\n}\n\ndivSchemes\n{\n    default         none;\n\n    div(phi,U)      bounded Gauss limitedLinear 0.2;\n\n    energy          bounded Gauss limitedLinear 0.2;\n    div(phi,K)      $energy;\n    div(phi,h)      $energy;\n\n    turbulence      bounded Gauss limitedLinear 0.2;\n    div(phi,k)      $turbulence;\n    div(phi,epsilon) $turbulence;\n    div(phi,omega) $turbulence;\n\n    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;\n}\n\nlaplacianSchemes\n{\n    default         Gauss linear orthogonal;\n}\n\ninterpolationSchemes\n{\n    default         linear;\n}\n\nsnGradSchemes\n{\n    default         orthogonal;\n}\n\nwallDist\n{\n    method          meshWave;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+To resolve the 'method' entry error in 'wallDist', modify 'system/fvSchemes' by adding the 'method' keyword under a 'wallDist' dictionary. This is required as 'wallDist' configuration belongs in 'fvSchemes' for distance calculation methods. Correction: Insert 'wallDist { method meshWave; }' before the final closing bracket. Ensure no other sections are altered to preserve initial/boundary conditions. The error occurs because 'method' is mandatory in 'wallDist' to specify the distance calculation algorithm (e.g., meshWave). Tutorial reference confirms this entry is valid in 'fvSchemes'.
+=====Test round 6=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'dimensions' not found in dictionary "0/k"
+
+
+file: 0/k at line 9 to 31.
+
+    From bool Foam::dimensionSet::readEntry(const Foam::word&, const Foam::dictionary&, Foam::IOobjectOption::readOption)
+    in file dimensionSet/dimensionSetIO.C at line 442.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/k
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      k;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [0 2 -2 0 0 0 0];\n\ninternalField   uniform 3.75e-04;\n\nboundaryField\n{\n    frontAndBack\n    {\n        type            kqRWallFunction;\n        value           uniform 3.75e-04;\n    }\n\n    topAndBottom\n    {\n        type            kqRWallFunction;\n        value           uniform 3.75e-04;\n    }\n\n    hot\n    {\n        type            kqRWallFunction;\n        value           uniform 3.75e-04;\n    }\n\n    cold\n    {\n        type            kqRWallFunction;\n        value           uniform 3.75e-04;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: Add dimensions entry below FoamFile block in 0/k. Missing dimensions caused fatal error as OpenFOAM requires unit verification.  
+Step 2: Insert line 'dimensions      [0 2 -2 0 0 0 0];' after object declaration. This matches tutorial's k field dimensions (m²/s²).  
+Step 3: Verify no other entries conflict with paper's requirements. Existing boundaryField/value settings comply with prescribed initial/boundary conditions.  
+Final 0/k must contain dimensions but preserve original internalField/boundaryField values and kqRWallFunction types.
+=====Test round 7=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'dimensions' not found in dictionary "0/omega"
+
+
+file: 0/omega at line 9 to 31.
+
+    From bool Foam::dimensionSet::readEntry(const Foam::word&, const Foam::dictionary&, Foam::IOobjectOption::readOption)
+    in file dimensionSet/dimensionSetIO.C at line 442.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/omega
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      omega;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [0 0 -1 0 0 0 0];\n\ninternalField   uniform 0.12;\n\nboundaryField\n{\n    frontAndBack\n    {\n        type            omegaWallFunction;\n        value           uniform 0.12;\n    }\n\n    topAndBottom\n    {\n        type            omegaWallFunction;\n        value           uniform 0.12;\n    }\n\n    hot\n    {\n        type            omegaWallFunction;\n        value           uniform 0.12;\n    }\n\n    cold\n    {\n        type            omegaWallFunction;\n        value           uniform 0.12;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+Step 1: Open the '0/omega' file in a text editor. Step 2: Insert the line "dimensions [0 0 -1 0 0 0 0];" immediately after the FoamFile block (line 9) and before internalField. Step 3: Ensure no other lines are modified to preserve initial/boundary conditions. Step 4: Save the file. The error occurs because OpenFOAM requires explicit dimension declarations for field variables. The dimensions entry is mandatory in all OpenFOAM field files and must be set in '0/omega' (not moved to other folders). The tutorial confirms omega's correct dimensions are [0 0 -1 0 0 0 0], matching its SI unit (s⁻¹).
+=====Test round 8=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'dimensions' not found in dictionary "constant/g"
+
+
+file: constant/g at line 9.
+
+    From const Foam::entry& Foam::dictionary::lookupEntry(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 363.
+
+FOAM exiting
+
+
+纠错方案：
+重写文件
+=====Test round 9=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'dimensions' not found in dictionary "0/p_rgh"
+
+
+file: 0/p_rgh at line 9 to 27.
+
+    From bool Foam::dimensionSet::readEntry(const Foam::word&, const Foam::dictionary&, Foam::IOobjectOption::readOption)
+    in file dimensionSet/dimensionSetIO.C at line 442.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/p_rgh
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      p_rgh;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [1 -1 -2 0 0 0 0];\n\ninternalField   uniform 1e5;\n\nboundaryField\n{\n    frontAndBack\n    {\n        type            fixedFluxPressure;\n        value           uniform 1e5;\n    }\n\n    topAndBottom\n    {\n        type            fixedFluxPressure;\n        value           uniform 1e5;\n    }\n\n    hot\n    {\n        type            fixedFluxPressure;\n        value           uniform 1e5;\n    }\n\n    cold\n    {\n        type            fixedFluxPressure;\n        value           uniform 1e5;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Add the 'dimensions' entry immediately after the FoamFile header in 0/p_rgh. Insert line:  
+dimensions      [1 -1 -2 0 0 0 0];  
+after the closing brace of the FoamFile block (line 8) and before internalField. Keep existing boundaryField entries and uniform 0 initialization. Do not modify boundary condition types (zeroGradient) as they match the paper's requirements. The error occurs because OpenFOAM requires dimension specifications for all field variables - this mandatory entry was missing but must exist in 0/p_rgh. No removal of existing content is needed.
+=====Test round 10=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Unable to set reference cell for field p
+    Please supply either pRefCell or pRefPoint
+
+
+file: system/fvSolution/SIMPLE at line 50 to 57.
+
+    From bool Foam::setRefCell(const volScalarField&, const volScalarField&, const Foam::dictionary&, Foam::label&, Foam::scalar&, bool)
+    in file cfdTools/general/findRefCell/findRefCell.C at line 100.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件system/fvSolution
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      fvSolution;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nsolvers\n{\n    p_rgh\n    {\n        solver           GAMG;\n        tolerance        1e-7;\n        relTol           0.01;\n        smoother         DICGaussSeidel;\n    }\n\n    \"(U|h|k|epsilon|omega)\"\n    {\n        solver          PBiCGStab;\n        preconditioner  DILU;\n        tolerance       1e-8;\n        relTol          0.1;\n    }\n}\n\nSIMPLE\n{\n    momentumPredictor no;\n    nNonOrthogonalCorrectors 0;\n    pRefCell        0;\n    pRefValue       0;\n\n    residualControl\n    {\n        p_rgh           1e-4;\n        U               1e-4;\n        h               1e-4;\n\n        // possibly check turbulence fields\n        \"(k|epsilon|omega)\" 1e-3;\n    }\n}\n\nrelaxationFactors\n{\n    fields\n    {\n        rho             1.0;\n        p_rgh           0.7;\n    }\n    equations\n    {\n        U               0.3;\n        h               0.3;\n        \"(k|epsilon|omega)\" 0.7;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+To resolve the "Unable to set reference cell for field p" error in `system/fvSolution`, modify the `SIMPLE` section by adding `pRefCell` and `pRefValue` entries. These settings are required for pressure field reference initialization. Ensure the values align with the initial condition `"p_rgh": 0` and mesh structure.  
+Step-by-step fix:  
+1. Open `system/fvSolution`.  
+2. Locate the `SIMPLE` dictionary.  
+3. Add `pRefCell 0;` and `pRefValue 0;` under `nNonOrthogonalCorrectors`.  
+4. Save the file. The revised `SIMPLE` section should read:  
+``` 
+SIMPLE 
+{ 
+    nNonOrthogonalCorrectors 2; 
+    pRefCell 0; 
+    pRefValue 0; 
+    residualControl 
+    { 
+        ... 
+    } 
+} 
+```  
+The error occurs because the SIMPLE algorithm requires a reference cell/value to uniquely define the pressure field. The correction does not violate the provided initial/boundary conditions.
+=====Test round 11=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'div(((rho*nuEff)*dev2(T(grad(U)))))' not found in dictionary "system/fvSchemes/divSchemes"
+
+
+file: system/fvSchemes/divSchemes at line 21 to 25.
+
+    From const Foam::entry& Foam::dictionary::lookupEntry(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 363.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件system/fvSchemes
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      fvSchemes;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nddtSchemes\n{\n    default steadyState;\n}\n\ngradSchemes\n{\n    default         Gauss linear;\n}\n\ndivSchemes\n{\n    default         none;\n\n    div(phi,U)      bounded Gauss limitedLinear 0.2;\n\n    energy          bounded Gauss limitedLinear 0.2;\n    div(phi,K)      $energy;\n    div(phi,h)      $energy;\n\n    turbulence      bounded Gauss limitedLinear 0.2;\n    div(phi,k)      $turbulence;\n    div(phi,epsilon) $turbulence;\n    div(phi,omega) $turbulence;\n\n    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;\n}\n\nlaplacianSchemes\n{\n    default         Gauss linear orthogonal;\n}\n\ninterpolationSchemes\n{\n    default         linear;\n}\n\nsnGradSchemes\n{\n    default         orthogonal;\n}\n\nwallDist\n{\n    method          meshWave;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: Identify the missing term in divSchemes. The error explicitly states 'div(((rho*nuEff)*dev2(T(grad(U)))))' is not found.  
+Step 2: Compare with the tutorial's divSchemes. The tutorial uses 'div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;' for viscous stress tensor divergence.  
+Step 3: Modify the existing entry 'div((nuEff*dev2(T(grad(U))))) Gauss linear;' to match the tutorial syntax. Add 'rho*' and adjust parentheses: 'div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;'.  
+Step 4: Ensure no other terms in divSchemes conflict with initial/boundary conditions. The existing entries for phi/U/k/omega are valid for RANS with k-omega and don't violate the specified conditions.  
+Step 5: Verify parentheses count. The corrected term requires triple parentheses after 'div' to properly encapsulate the tensor expression.  
+Final Correction: Replace line 21-25 in divSchemes with 'div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;' while preserving other entries.
+=====Test round 12=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'div(phi,K)' not found in dictionary "system/fvSchemes/divSchemes"
+
+
+file: system/fvSchemes/divSchemes at line 21 to 25.
+
+    From const Foam::entry& Foam::dictionary::lookupEntry(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 363.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件system/fvSchemes
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      fvSchemes;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nddtSchemes\n{\n    default steadyState;\n}\n\ngradSchemes\n{\n    default         Gauss linear;\n}\n\ndivSchemes\n{\n    default         none;\n\n    div(phi,U)      bounded Gauss limitedLinear 0.2;\n\n    energy          bounded Gauss limitedLinear 0.2;\n    div(phi,K)      $energy;\n    div(phi,h)      $energy;\n\n    turbulence      bounded Gauss limitedLinear 0.2;\n    div(phi,k)      $turbulence;\n    div(phi,epsilon) $turbulence;\n    div(phi,omega) $turbulence;\n\n    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;\n}\n\nlaplacianSchemes\n{\n    default         Gauss linear orthogonal;\n}\n\ninterpolationSchemes\n{\n    default         linear;\n}\n\nsnGradSchemes\n{\n    default         orthogonal;\n}\n\nwallDist\n{\n    method          meshWave;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+To fix the error: The 'div(phi,K)' entry is missing in the divSchemes dictionary. Add it by referencing the energy scheme from the tutorial. Modify the divSchemes section as follows:
+
+divSchemes
+{
+    default         none;
+    div(phi,U)      bounded Gauss limitedLinear 1;
+    energy          bounded Gauss limitedLinear 1;
+    div(phi,K)      $energy;
+    div(phi,k)      bounded Gauss upwind;
+    div(phi,omega)  bounded Gauss upwind;
+    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
+}
+
+Reason: The solver requires a discretization scheme for the kinetic energy term 'K' (uppercase), which is separate from turbulent kinetic energy 'k' (lowercase). The tutorial uses a shared 'energy' scheme for such terms. Ensure the limiter value (1) matches your existing setup for consistency. This correction does not affect initial/boundary conditions.
+=====Test round 13=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'div(phi,h)' not found in dictionary "system/fvSchemes/divSchemes"
+
+
+file: system/fvSchemes/divSchemes at line 21 to 27.
+
+    From const Foam::entry& Foam::dictionary::lookupEntry(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 363.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件system/fvSchemes
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      fvSchemes;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nddtSchemes\n{\n    default steadyState;\n}\n\ngradSchemes\n{\n    default         Gauss linear;\n}\n\ndivSchemes\n{\n    default         none;\n\n    div(phi,U)      bounded Gauss limitedLinear 0.2;\n\n    energy          bounded Gauss limitedLinear 0.2;\n    div(phi,K)      $energy;\n    div(phi,h)      $energy;\n\n    turbulence      bounded Gauss limitedLinear 0.2;\n    div(phi,k)      $turbulence;\n    div(phi,epsilon) $turbulence;\n    div(phi,omega) $turbulence;\n\n    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;\n}\n\nlaplacianSchemes\n{\n    default         Gauss linear orthogonal;\n}\n\ninterpolationSchemes\n{\n    default         linear;\n}\n\nsnGradSchemes\n{\n    default         orthogonal;\n}\n\nwallDist\n{\n    method          meshWave;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error occurs because 'div(phi,h)' is missing in the divSchemes dictionary. In the provided fvSchemes file, 'energy' is defined but not linked to 'div(phi,h)', while the tutorial example uses '$energy' to handle both 'div(phi,K)' and 'div(phi,h)'. Add 'div(phi,h) $energy;' to the divSchemes section. Modified divSchemes block:
+
+divSchemes
+{
+    default         none;
+    div(phi,U)      bounded Gauss limitedLinear 1;
+    energy          bounded Gauss limitedLinear 1;
+    div(phi,K)      $energy;
+    div(phi,h)      $energy;
+    div(phi,k)      bounded Gauss upwind;
+    div(phi,omega)  bounded Gauss upwind;
+    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
+}
+
+This aligns with the tutorial's approach where 'energy' defines a shared scheme for enthalpy (h) and kinetic energy (K). The entry 'div(phi,h)' must exist in fvSchemes/divSchemes when solving energy equations involving enthalpy. No boundary/initial condition violations occur since this is a numerical scheme setting, not a physical condition.
+=====Test round 14=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'h' not found in dictionary "system/fvSolution/solvers"
+
+
+file: system/fvSolution/solvers at line 13 to 44.
+
+    From const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 457.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件system/fvSolution
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      fvSolution;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nsolvers\n{\n    p_rgh\n    {\n        solver           GAMG;\n        tolerance        1e-7;\n        relTol           0.01;\n        smoother         DICGaussSeidel;\n    }\n\n    \"(U|h|k|epsilon|omega)\"\n    {\n        solver          PBiCGStab;\n        preconditioner  DILU;\n        tolerance       1e-8;\n        relTol          0.1;\n    }\n}\n\nSIMPLE\n{\n    momentumPredictor no;\n    nNonOrthogonalCorrectors 0;\n    pRefCell        0;\n    pRefValue       0;\n\n    residualControl\n    {\n        p_rgh           1e-4;\n        U               1e-4;\n        h               1e-4;\n\n        // possibly check turbulence fields\n        \"(k|epsilon|omega)\" 1e-3;\n    }\n}\n\nrelaxationFactors\n{\n    fields\n    {\n        rho             1.0;\n        p_rgh           0.7;\n    }\n    equations\n    {\n        U               0.3;\n        h               0.3;\n        \"(k|epsilon|omega)\" 0.7;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+To resolve the error, add the 'h' solver entry in the 'solvers' dictionary of system/fvSolution. The error occurs because the solver requires settings for 'h', which is not present. Modify the 'solvers' section to include 'h' with appropriate solver parameters, similar to the tutorial's approach. Ensure the 'h' entry uses a compatible solver and preconditioner. Do not alter initial/boundary conditions. 
+
+Step-by-step fix: Open system/fvSolution. Locate the 'solvers' dictionary. Insert the 'h' entry:
+h { solver PBiCGStab; preconditioner DILU; tolerance 1e-8; relTol 0.01; }. Save the file. This addition aligns with the tutorial's regex-based grouping for variables like 'h' and resolves the missing entry error.
+=====Test round 15=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::symGaussSeidelSmoother::smooth(Foam::word const&, Foam::Field<double>&, Foam::lduMatrix const&, Foam::Field<double> const&, Foam::FieldField<Foam::Field, double> const&, Foam::UPtrList<Foam::lduInterfaceField const> const&, unsigned char, int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::symGaussSeidelSmoother::smooth(Foam::Field<double>&, Foam::Field<double> const&, unsigned char, int) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::smoothSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  Foam::fvMesh::solve(Foam::fvMatrix<Foam::Vector<double> >&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+#9  ? in /lib/x86_64-linux-gnu/libc.so.6
+#10  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#11  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+=============
+/usr/bin/bash: line 1: 73358 Floating point exceptionbuoyantSimpleFoam -case /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0 > /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 16=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::symGaussSeidelSmoother::smooth(Foam::word const&, Foam::Field<double>&, Foam::lduMatrix const&, Foam::Field<double> const&, Foam::FieldField<Foam::Field, double> const&, Foam::UPtrList<Foam::lduInterfaceField const> const&, unsigned char, int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::symGaussSeidelSmoother::smooth(Foam::Field<double>&, Foam::Field<double> const&, unsigned char, int) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::smoothSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  Foam::fvMesh::solve(Foam::fvMatrix<Foam::Vector<double> >&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+#9  ? in /lib/x86_64-linux-gnu/libc.so.6
+#10  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#11  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+=============
+/usr/bin/bash: line 1: 73558 Floating point exceptionbuoyantSimpleFoam -case /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0 > /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 17=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::symGaussSeidelSmoother::smooth(Foam::word const&, Foam::Field<double>&, Foam::lduMatrix const&, Foam::Field<double> const&, Foam::FieldField<Foam::Field, double> const&, Foam::UPtrList<Foam::lduInterfaceField const> const&, unsigned char, int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::symGaussSeidelSmoother::smooth(Foam::Field<double>&, Foam::Field<double> const&, unsigned char, int) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::smoothSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  Foam::fvMesh::solve(Foam::fvMatrix<Foam::Vector<double> >&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+#9  ? in /lib/x86_64-linux-gnu/libc.so.6
+#10  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#11  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+=============
+/usr/bin/bash: line 1: 73745 Floating point exceptionbuoyantSimpleFoam -case /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0 > /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 18=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::symGaussSeidelSmoother::smooth(Foam::word const&, Foam::Field<double>&, Foam::lduMatrix const&, Foam::Field<double> const&, Foam::FieldField<Foam::Field, double> const&, Foam::UPtrList<Foam::lduInterfaceField const> const&, unsigned char, int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::symGaussSeidelSmoother::smooth(Foam::Field<double>&, Foam::Field<double> const&, unsigned char, int) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::smoothSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  Foam::fvMesh::solve(Foam::fvMatrix<Foam::Vector<double> >&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+#9  ? in /lib/x86_64-linux-gnu/libc.so.6
+#10  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#11  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+=============
+/usr/bin/bash: line 1: 73969 Floating point exceptionbuoyantSimpleFoam -case /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0 > /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 19=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::symGaussSeidelSmoother::smooth(Foam::word const&, Foam::Field<double>&, Foam::lduMatrix const&, Foam::Field<double> const&, Foam::FieldField<Foam::Field, double> const&, Foam::UPtrList<Foam::lduInterfaceField const> const&, unsigned char, int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::symGaussSeidelSmoother::smooth(Foam::Field<double>&, Foam::Field<double> const&, unsigned char, int) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::smoothSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  Foam::fvMesh::solve(Foam::fvMatrix<Foam::Vector<double> >&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+#9  ? in /lib/x86_64-linux-gnu/libc.so.6
+#10  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#11  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+=============
+/usr/bin/bash: line 1: 74215 Floating point exceptionbuoyantSimpleFoam -case /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0 > /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 20=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  ? in /lib/x86_64-linux-gnu/libm.so.6
+#4  Foam::nutUWallFunctionFvPatchScalarField::calcYPlus(Foam::Field<double> const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libturbulenceModels.so
+#5  Foam::nutUWallFunctionFvPatchScalarField::calcNut() const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libturbulenceModels.so
+#6  Foam::nutWallFunctionFvPatchScalarField::updateCoeffs() in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libturbulenceModels.so
+#7  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libturbulenceModels.so
+#8  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libcompressibleTurbulenceModels.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libcompressibleTurbulenceModels.so
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libcompressibleTurbulenceModels.so
+#11  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libcompressibleTurbulenceModels.so
+#12  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+#13  ? in /lib/x86_64-linux-gnu/libc.so.6
+#14  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#15  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+=============
+/usr/bin/bash: line 1: 74479 Floating point exceptionbuoyantSimpleFoam -case /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0 > /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 21=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::symGaussSeidelSmoother::smooth(Foam::word const&, Foam::Field<double>&, Foam::lduMatrix const&, Foam::Field<double> const&, Foam::FieldField<Foam::Field, double> const&, Foam::UPtrList<Foam::lduInterfaceField const> const&, unsigned char, int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::symGaussSeidelSmoother::smooth(Foam::Field<double>&, Foam::Field<double> const&, unsigned char, int) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::smoothSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  Foam::fvMesh::solve(Foam::fvMatrix<Foam::Vector<double> >&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+#9  ? in /lib/x86_64-linux-gnu/libc.so.6
+#10  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#11  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+=============
+/usr/bin/bash: line 1: 74729 Floating point exceptionbuoyantSimpleFoam -case /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0 > /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 22=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::symGaussSeidelSmoother::smooth(Foam::word const&, Foam::Field<double>&, Foam::lduMatrix const&, Foam::Field<double> const&, Foam::FieldField<Foam::Field, double> const&, Foam::UPtrList<Foam::lduInterfaceField const> const&, unsigned char, int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::symGaussSeidelSmoother::smooth(Foam::Field<double>&, Foam::Field<double> const&, unsigned char, int) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::smoothSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  Foam::fvMesh::solve(Foam::fvMatrix<Foam::Vector<double> >&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+#9  ? in /lib/x86_64-linux-gnu/libc.so.6
+#10  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#11  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+=============
+/usr/bin/bash: line 1: 74962 Floating point exceptionbuoyantSimpleFoam -case /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0 > /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0/case_run.log
+
+纠错方案：
+进行浮点数异常错误修正
+=====Test round 23=====
+运行错误:
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  Foam::symGaussSeidelSmoother::smooth(Foam::word const&, Foam::Field<double>&, Foam::lduMatrix const&, Foam::Field<double> const&, Foam::FieldField<Foam::Field, double> const&, Foam::UPtrList<Foam::lduInterfaceField const> const&, unsigned char, int) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#4  Foam::symGaussSeidelSmoother::smooth(Foam::Field<double>&, Foam::Field<double> const&, unsigned char, int) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::smoothSolver::solve(Foam::Field<double>&, Foam::Field<double> const&, unsigned char) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#6  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#7  Foam::fvMesh::solve(Foam::fvMatrix<Foam::Vector<double> >&, Foam::dictionary const&) const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libfiniteVolume.so
+#8  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+#9  ? in /lib/x86_64-linux-gnu/libc.so.6
+#10  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#11  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/buoyantSimpleFoam
+=============
+/usr/bin/bash: line 1: 75208 Floating point exceptionbuoyantSimpleFoam -case /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0 > /home/ChatCFD_0527/run_chatcfd/Buoyant_Cavity_0/case_run.log
+

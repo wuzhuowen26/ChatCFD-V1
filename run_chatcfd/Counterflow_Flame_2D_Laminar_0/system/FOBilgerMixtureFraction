@@ -1,0 +1,25 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      FOBilgerMixtureFraction;
+}
+
+elements
+(
+    C
+    H
+    O
+);
+
+species
+(
+    CH4
+    O2
+    CO2
+    H2O
+    N2
+);
+
+reactionName combustionReaction;

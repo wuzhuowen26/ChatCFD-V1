@@ -4,7 +4,8 @@ import yaml
 import json
 import subprocess
 
-of_path = "/opt/openfoam10"  # "~/OpenFOAM/OpenFOAM-v2406"
+of_path = "/usr/lib/openfoam/openfoam2406"  # "~/OpenFOAM/OpenFOAM-v2406"
+sentence_transformer_path = f"/home/all-mpnet-base-v2"
 
 def ensure_directory_exists(directory_path):
     # Check if the directory exists
@@ -24,7 +25,11 @@ run_time = 10
 
 all_case_requirement_json = None
 
-all_case_dict = None
+all_case_dict = None        # LLM根据PDF进行的case总结
+
+case_description = None     # 
+
+other_physical_model = None # str or list
 
 target_case_requirement_json = None
 
@@ -44,8 +49,8 @@ def convert_boundary_names_to_lowercase(data):
 
 global_target_case_dict = None
 
-# case_boundaries = []
-case_solver = None
+case_boundaries = []
+case_solver = None              # case的solver
 case_turbulence_type = "laminar"
 case_turbulece_model = "invalid"
 case_boundary_names = None
@@ -77,7 +82,7 @@ global_OF_keywords = None
 
 best_reference_cases = []
 
-of_tutorial_dir = "/opt/openfoam10/tutorials"  # '/home/fane/OpenFOAM/fane-v2406/tutorials' 
+of_tutorial_dir = "/usr/lib/openfoam/openfoam2406/tutorials"  # '/home/fane/OpenFOAM/fane-v2406/tutorials' 
 
 global_file_requirement = {}
 
@@ -87,13 +92,13 @@ pdf_short_case_description = None
 
 OF_data_path = f"{Database_OFv24_PATH}/processed_merged_OF_cases.json"
 
-OF_case_data_dict = {}
+OF_case_data_dict = {}      # f"{Database_OFv24_PATH}/processed_merged_OF_cases.json"中的内容
 
 max_running_test_round = 30
 
 general_prompts = '''Respond to the following user query in a comprehensive and detailed way. You can write down your thought process before responding. Write your thoughts after “Here is my thought process:” and write your response after “Here is my response:”. \n'''
 
-steady_solvers = ["laplacianFoam", "overLaplacianDyMFoam","potentialFoam","overPotentialFoam","scalarTransportFoam","adjointShapeOptimizationFoam","boundaryFoam","simpleFoam","overSimpleFoam","porousSimpleFoam","SRFSimpleFoam","rhoSimpleFoam","overRhoSimpleFoam","rhoPorousSimpleFoam","interFoam","interMixingFoam","interIsoFoam","interPhaseChangeFoam","MPPICInterFoam","multiphaseInterFoam","potentialFreeSurfaceFoam","potentialFreeSurfaceDyMFoam","buoyantBoussinesqSimpleFoam","buoyantSimpleFoam","chtMultiRegionSimpleFoam","thermoFoam","icoUncoupledKinematicParcelFoam","simpleReactingParcelFoam","simpleCoalParcelFoam","simpleSprayFoam","uncoupledKinematicParcelFoam", "solidEquilibriumDisplacementFoam","financialFoam"]
+steady_solvers = ["laplacianFoam", "overLaplacianDyMFoam","potentialFoam","overPotentialFoam","scalarTransportFoam","adjointShapeOptimizationFoam","boundaryFoam","simpleFoam","overSimpleFoam","porousSimpleFoam","SRFSimpleFoam","rhoSimpleFoam","overRhoSimpleFoam","rhoPorousSimpleFoam","interFoam","interMixingFoam","interIsoFoam","interPhaseChangeFoam","MPPICInterFoam","multiphaseInterFoam","potentialFreeSurfaceFoam","potentialFreeSurfaceDyMFoam","buoyantBoussinesqSimpleFoam","buoyantFoam", "buoyantSimpleFoam","chtMultiRegionSimpleFoam","thermoFoam","icoUncoupledKinematicParcelFoam","simpleReactingParcelFoam","simpleCoalParcelFoam","simpleSprayFoam","uncoupledKinematicParcelFoam", "solidEquilibriumDisplacementFoam","financialFoam"]
 
 solver_keywords = ['buoyantBoussinesqSimpleFoam', 'overInterDyMFoam', 'kinematicParcelFoam', 
                    'buoyantSimpleFoam', 'reactingFoam', 'rhoReactingFoam', 
@@ -122,7 +127,7 @@ solver_keywords = ['buoyantBoussinesqSimpleFoam', 'overInterDyMFoam', 'kinematic
                    'reactingTwoPhaseEulerFoam', 'reactingMultiphaseEulerFoam', 
                    'rhoPorousSimpleFoam', 'rhoCentralFoam', 'SRFSimpleFoam', 
                    'PDRFoam', 'interPhaseChangeFoam', 'buoyantBoussinesqPimpleFoam', 
-                   'XiFoam', 'dnsFoam', 'chtMultiRegionSimpleFoam']
+                   'XiFoam', 'dnsFoam', 'chtMultiRegionSimpleFoam', 'buoyantFoam']
 
 turbulence_type_keywords = ['laminar', 'RAS', 'LES', 'twoPhaseTransport']
 
@@ -163,3 +168,5 @@ reference_file_by_solver = None
 
 simulate_requirement = None     # 算例运行要求设置
 boundary_name_and_type = None
+
+boundary_init = None

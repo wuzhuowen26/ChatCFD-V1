@@ -8,8 +8,9 @@
     "DEEPSEEK_R1_MODEL_NAME" : "ep-20250401171402-jk6bg",
     "R1_temperature":0.9,
     "run_time":3,
-    "OpenFOAM_path":"/opt/openfoam10",
-    "OpenFOAM_tutorial_path":"/opt/openfoam10/tutorials",
+    "OpenFOAM_path":"/usr/lib/openfoam/openfoam2406",
+    "OpenFOAM_tutorial_path":"/usr/lib/openfoam/openfoam2406/tutorials",
     "max_running_test_round":30,
-    "pdf_chunk_d" : 1.5
+    "pdf_chunk_d" : 1.5,
+    "sentence_transformer_path": "/home/all-mpnet-base-v2"
 }

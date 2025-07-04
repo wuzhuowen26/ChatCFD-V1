@@ -1,0 +1,42 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      T;
+}
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   uniform 2000;
+
+boundaryField
+{
+    fuel
+    {
+        type            fixedValue;
+        value           uniform 293;
+    }
+    air
+    {
+        type            fixedValue;
+        value           uniform 293;
+    }
+    outlet
+    {
+        type            fixedValue;
+        value           uniform 293;
+    }
+    frontAndBack
+    {
+        type            empty;
+    }
+    fluid-1
+    {
+        type            processor;
+    }
+    interior-1
+    {
+        type            processor;
+    }
+}

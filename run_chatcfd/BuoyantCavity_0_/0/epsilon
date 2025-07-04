@@ -1,0 +1,33 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      epsilon;
+}
+
+internalField   uniform 4e-6;
+
+boundaryField
+{
+    hot
+    {
+        type            epsilonWallFunction;
+        value           uniform 4e-6;
+    }
+    cold
+    {
+        type            epsilonWallFunction;
+        value           uniform 4e-6;
+    }
+    topAndBottom
+    {
+        type            epsilonWallFunction;
+        value           uniform 4e-6;
+    }
+    frontAndBack
+    {
+        type            epsilonWallFunction;
+        value           uniform 4e-6;
+    }
+}

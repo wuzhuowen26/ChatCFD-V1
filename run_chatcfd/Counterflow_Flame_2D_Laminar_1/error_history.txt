@@ -1,0 +1,480 @@
+****************error_history****************
+=====Test round 0=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'thermoType' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/Counterflow_Flame_2D_Laminar_1/constant/thermophysicalProperties"
+
+
+file: constant/thermophysicalProperties at line 13 to 28.
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = Foam::word]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/thermophysicalProperties
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      thermophysicalProperties;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nthermoType\n{\n    type            hePsiThermo;\n    mixture         reactingMixture;\n    transport       sutherland;\n    thermo          janaf;\n    energy          sensibleEnthalpy;\n    equationOfState perfectGas;\n    specie          specie;\n}\n\ninertSpecie         N2;\n\nchemistryReader     foamChemistryReader;\n\nfoamChemistryFile   \"<constant>/reactions\";\n\nfoamChemistryThermoFile \"<constant>/thermo.compressibleGas\";\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Add the 'thermoType' dictionary at the top level of 'constant/thermophysicalProperties' and remove the 'mixture' block. Insert this after the FoamFile header:
+thermoType { type hePsiThermo; mixture reactingMixture; transport sutherland; thermo janaf; energy sensibleEnthalpy; equationOfState perfectGas; specie specie; } inertSpecie N2; chemistryReader foamChemistryReader; foamChemistryFile "<constant>/reactions"; foamChemistryThermoFile "<constant>/thermo.compressibleGas";. Delete lines 13-28 (the 'mixture' block). Ensure the 'species (CH4 O2 N2 CO2 H2O);' line remains. Create corresponding 'reactions' and 'thermo.compressibleGas' files for chemistry data.
+=====Test round 1=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'dimensions' not found in dictionary "0/p"
+
+
+file: 0/p at line 9 to 27.
+
+    From bool Foam::dimensionSet::readEntry(const Foam::word&, const Foam::dictionary&, Foam::IOobjectOption::readOption)
+    in file dimensionSet/dimensionSetIO.C at line 442.
+
+FOAM exiting
+
+
+=====Test round 24=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'dimensions' not found in dictionary "0/p"
+
+
+file: 0/p at line 9 to 27.
+
+    From bool Foam::dimensionSet::readEntry(const Foam::word&, const Foam::dictionary&, Foam::IOobjectOption::readOption)
+    in file dimensionSet/dimensionSetIO.C at line 442.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/p
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      p;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [1 -1 -2 0 0 0 0];\n\ninternalField   uniform 1e5;\n\nboundaryField\n{\n    \"(fuel|air)\"\n    {\n        type            zeroGradient;\n    }\n\n    outlet\n    {\n        type            totalPressure;\n        p0              $internalField;\n    }\n\n    frontAndBack\n    {\n        type            empty;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: Add the missing 'dimensions' entry below the FoamFile header in 0/p. Use [1 -1 -2 0 0 0 0] for pressure dimensions (Pa in OpenFOAM's unit system). This addresses the fatal "Entry 'dimensions' not found" error.  
+Step 2: Verify boundary conditions match the paper's requirements. The outlet's fixedValue 1e5 and fuel/air's zeroGradient are correct per the paper's specifications.  
+Step 3: Remove any hidden characters or invalid syntax. Ensure uniform field definitions have no extra formatting.  
+
+Corrected 0/p file content:  
+FoamFile  
+{  
+    version     2.0;  
+    format      ascii;  
+    class       volScalarField;  
+    object      p;  
+}  
+
+dimensions      [1 -1 -2 0 0 0 0];  
+
+internalField   uniform 1e5;  
+
+boundaryField  
+{  
+    fuel  
+    {  
+        type            zeroGradient;  
+    }  
+    air  
+    {  
+        type            zeroGradient;  
+    }  
+    outlet  
+    {  
+        type            fixedValue;  
+        value           uniform 1e5;  
+    }  
+    defaultFaces  
+    {  
+        type            empty;  
+    }  
+}
+=====Test round 2=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'dimensions' not found in dictionary "0/T"
+
+
+file: 0/T at line 9 to 29.
+
+    From bool Foam::dimensionSet::readEntry(const Foam::word&, const Foam::dictionary&, Foam::IOobjectOption::readOption)
+    in file dimensionSet/dimensionSetIO.C at line 442.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/p
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      p;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [1 -1 -2 0 0 0 0];\n\ninternalField   uniform 1e5;\n\nboundaryField\n{\n    \"(fuel|air)\"\n    {\n        type            zeroGradient;\n    }\n\n    outlet\n    {\n        type            totalPressure;\n        p0              $internalField;\n    }\n\n    frontAndBack\n    {\n        type            empty;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: Add missing 'dimensions' entry to the '0/p' file. Insert the line "dimensions      [1 -1 -2 0 0 0 0];" immediately after the FoamFile block. This specifies pressure dimensions as kg/(m·s²) (Pascals). 
+Step 2: Keep all existing initial conditions (uniform 1e5) and boundary conditions (zeroGradient/fixedValue) unchanged. Do NOT modify any boundary field entries to preserve the specified pressure value at outlet and gradient conditions.
+Correction: Add dimensions entry without altering any existing field values or boundary conditions. Required location: Between FoamFile block and internalField in 0/p. No entries should be removed from this file.
+=====Test round 25=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'dimensions' not found in dictionary "0/T"
+
+
+file: 0/T at line 9 to 29.
+
+    From bool Foam::dimensionSet::readEntry(const Foam::word&, const Foam::dictionary&, Foam::IOobjectOption::readOption)
+    in file dimensionSet/dimensionSetIO.C at line 442.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/T
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      T;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [0 0 0 1 0 0 0];\n\ninternalField   uniform 2000;\n\nboundaryField\n{\n    \"(fuel|air)\"\n    {\n        type            fixedValue;\n        value           uniform 293;\n    }\n\n    outlet\n    {\n        type            inletOutlet;\n        inletValue      uniform 293;\n        value           uniform 293;\n    }\n\n    frontAndBack\n    {\n        type            empty;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error is caused by the missing 'dimensions' entry in the 0/T file. Add the line 'dimensions [0 0 0 1 0 0 0];' immediately after the FoamFile header block to specify temperature units (Kelvin). This does NOT alter initial/boundary conditions. Corrected 0/T file content:  
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      T;
+}
+
+dimensions      [0 0 0 1 0 0 0];
+internalField   uniform 2000;
+boundaryField
+{
+    fuel
+    {
+        type            fixedValue;
+        value           uniform 293;
+    }
+    air
+    {
+        type            fixedValue;
+        value           uniform 293;
+    }
+    outlet
+    {
+        type            fixedValue;
+        value           uniform 293;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+=====Test round 3=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+File "/home/ChatCFD_0527/run_chatcfd/Counterflow_Flame_2D_Laminar_1/constant/thermo.compressibleGas" does not exist
+
+file: constant/thermo.compressibleGas at line 1.
+
+    From Foam::IFstream& Foam::IFstream::operator()() const
+    in file db/IOstreams/Fstreams/IFstream.C at line 312.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/T
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      T;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [0 0 0 1 0 0 0];\n\ninternalField   uniform 2000;\n\nboundaryField\n{\n    \"(fuel|air)\"\n    {\n        type            fixedValue;\n        value           uniform 293;\n    }\n\n    outlet\n    {\n        type            inletOutlet;\n        inletValue      uniform 293;\n        value           uniform 293;\n    }\n\n    frontAndBack\n    {\n        type            empty;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: Add mandatory dimensions entry to 0/T file. Insert 'dimensions [0 0 0 1 0 0 0];' after FoamFile header based on tutorial reference.  
+Step 2: Maintain internalField uniform 2000 and existing boundaryField structure to preserve initial/boundary conditions.  
+Step 3: Place dimensions entry before internalField declaration.  
+Error cause: Missing dimensions keyword in 0/T field definition. This entry is REQUIRED in all OpenFOAM field files for unit verification. Correction preserves all specified thermal conditions from the paper while fixing dimensional declaration.
+=====Test round 26=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+File "/home/ChatCFD_0527/run_chatcfd/Counterflow_Flame_2D_Laminar_1/constant/thermo.compressibleGas" does not exist
+
+file: constant/thermo.compressibleGas at line 1.
+
+    From Foam::IFstream& Foam::IFstream::operator()() const
+    in file db/IOstreams/Fstreams/IFstream.C at line 312.
+
+FOAM exiting
+
+
+纠错方案：
+添加文件constant/thermo.compressibleGas
+=====Test round 4=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'species' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/Counterflow_Flame_2D_Laminar_1/constant/reactions"
+
+
+file: constant/reactions at line 9 to 18.
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = Foam::List<Foam::word>]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+添加文件constant/thermo.compressibleGas
+=====Test round 27=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'species' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/Counterflow_Flame_2D_Laminar_1/constant/reactions"
+
+
+file: constant/reactions at line 9 to 18.
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = Foam::List<Foam::word>]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/reactions
+参考文件：
+{
+  "sample_file_0": "\nelements\n(\nO\nC\nH\nN\n);\n\n\nspecies\n(\n    O2\n    H2O\n    CH4\n    CO2\n    N2\n);\n\nreactions\n{\n    methaneReaction\n    {\n        type     irreversibleArrheniusReaction;\n        reaction \"CH4 + 2O2 = CO2 + 2H2O\";\n        A        5.2e16;\n        beta     0;\n        Ta       14906;\n    }\n}\n"
+}
+修改建议：
+
+
+Step 1: Add the missing "species" list to constant/reactions. The error occurs because OpenFOAM expects a 'species' entry defining all active species in the reactions dictionary. The tutorial example confirms species must be declared here. Insert this block after the FoamFile header and before reactions:  
+species ( O2 H2O CH4 CO2 N2 );  
+
+Step 2: Correct the reaction type keyword. Change "irreversibleArrhenius" to "irreversibleArrheniusReaction" to match valid OpenFOAM reaction model naming conventions from the tutorial.  
+
+Step 3: Remove the parentheses enclosing reactions. The reactions block should use curly braces, not parentheses, per standard OpenFOAM syntax. Replace "reactions(" with "reactions{" and ");" with "};".  
+
+The revised constant/reactions file will have valid species declaration, correct reaction type, and proper syntax while preserving initial/boundary conditions.
+=====Test round 28=====
+运行错误:
+
+
+--> FOAM FATAL ERROR: (openfoam-2406 patch=241212)
+Attempt to return primitive entry ITstream : /home/ChatCFD_0527/run_chatcfd/Counterflow_Flame_2D_Laminar_1/constant/thermo.compressibleGas/thermoType/specie, line 19, IOstream: Version 2.0, format ascii, line 19, OPENED, GOOD
+    primitiveEntry 'specie' comprises 
+        on line 19: word 'specie'
+ as a sub-dictionary
+
+    From virtual const Foam::dictionary& Foam::primitiveEntry::dict() const
+    in file db/dictionary/primitiveEntry/primitiveEntry.C at line 294.
+
+FOAM aborting
+
+[stack trace]
+=============
+#1  Foam::error::simpleExit(int, bool) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  Foam::primitiveEntry::dict() const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#3  Foam::specie::specie(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libspecie.so
+#4  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#5  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#6  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#7  Foam::chemistryReader<Foam::sutherlandTransport<Foam::species::thermo<Foam::janafThermo<Foam::perfectGas<Foam::specie> >, Foam::sensibleEnthalpy> > >::adddictionaryConstructorToTable<Foam::foamChemistryReader<Foam::sutherlandTransport<Foam::species::thermo<Foam::janafThermo<Foam::perfectGas<Foam::specie> >, Foam::sensibleEnthalpy> > > >::New(Foam::dictionary const&, Foam::hashedWordList&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#8  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#11  Foam::psiReactionThermo::addfvMeshConstructorToTable<Foam::hePsiThermo<Foam::psiReactionThermo, Foam::SpecieMixture<Foam::reactingMixture<Foam::sutherlandTransport<Foam::species::thermo<Foam::janafThermo<Foam::perfectGas<Foam::specie> >, Foam::sensibleEnthalpy> > > > > >::New(Foam::fvMesh const&, Foam::word const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#12  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#13  Foam::psiReactionThermo::New(Foam::fvMesh const&, Foam::word const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#14  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#15  ? in /lib/x86_64-linux-gnu/libc.so.6
+#16  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#17  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1: 17807 Aborted                 reactingFoam -case /home/ChatCFD_0527/run_chatcfd/Counterflow_Flame_2D_Laminar_1 > /home/ChatCFD_0527/run_chatcfd/Counterflow_Flame_2D_Laminar_1/case_run.log
+
+纠错方案：
+修改文件constant/reactions
+参考文件：
+{
+  "sample_file_0": "\nelements\n(\nO\nC\nH\nN\n);\n\n\nspecies\n(\n    O2\n    H2O\n    CH4\n    CO2\n    N2\n);\n\nreactions\n{\n    methaneReaction\n    {\n        type     irreversibleArrheniusReaction;\n        reaction \"CH4 + 2O2 = CO2 + 2H2O\";\n        A        5.2e16;\n        beta     0;\n        Ta       14906;\n    }\n}\n"
+}
+修改建议：
+
+
+Add 'species' entry listing species in reactions. Correct reaction type and structure. Modify constant/reactions: Insert 'species ( CH4 O2 CO2 H2O );' at the top level. Enclose reactions within a 'reactions { ... }' subdictionary with named reactions. Change reaction type to 'irreversibleArrheniusReaction'. Ensure format matches tutorials with proper braces and syntax.
+=====Test round 5=====
+运行错误:
+
+
+--> FOAM FATAL ERROR: (openfoam-2406 patch=241212)
+Attempt to return primitive entry ITstream : /home/ChatCFD_0527/run_chatcfd/Counterflow_Flame_2D_Laminar_1/constant/thermo.compressibleGas/thermoType/specie, line 19, IOstream: Version 2.0, format ascii, line 19, OPENED, GOOD
+    primitiveEntry 'specie' comprises 
+        on line 19: word 'specie'
+ as a sub-dictionary
+
+    From virtual const Foam::dictionary& Foam::primitiveEntry::dict() const
+    in file db/dictionary/primitiveEntry/primitiveEntry.C at line 294.
+
+FOAM aborting
+
+[stack trace]
+=============
+#1  Foam::error::simpleExit(int, bool) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  Foam::primitiveEntry::dict() const in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#3  Foam::specie::specie(Foam::dictionary const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libspecie.so
+#4  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#5  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#6  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#7  Foam::chemistryReader<Foam::sutherlandTransport<Foam::species::thermo<Foam::janafThermo<Foam::perfectGas<Foam::specie> >, Foam::sensibleEnthalpy> > >::adddictionaryConstructorToTable<Foam::foamChemistryReader<Foam::sutherlandTransport<Foam::species::thermo<Foam::janafThermo<Foam::perfectGas<Foam::specie> >, Foam::sensibleEnthalpy> > > >::New(Foam::dictionary const&, Foam::hashedWordList&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#8  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#9  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#10  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#11  Foam::psiReactionThermo::addfvMeshConstructorToTable<Foam::hePsiThermo<Foam::psiReactionThermo, Foam::SpecieMixture<Foam::reactingMixture<Foam::sutherlandTransport<Foam::species::thermo<Foam::janafThermo<Foam::perfectGas<Foam::specie> >, Foam::sensibleEnthalpy> > > > > >::New(Foam::fvMesh const&, Foam::word const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#12  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#13  Foam::psiReactionThermo::New(Foam::fvMesh const&, Foam::word const&) in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/lib/libreactionThermophysicalModels.so
+#14  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+#15  ? in /lib/x86_64-linux-gnu/libc.so.6
+#16  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#17  ? in /usr/lib/openfoam/openfoam2406/platforms/linux64GccDPInt32Opt/bin/reactingFoam
+=============
+/usr/bin/bash: line 1: 17877 Aborted                 reactingFoam -case /home/ChatCFD_0527/run_chatcfd/Counterflow_Flame_2D_Laminar_1 > /home/ChatCFD_0527/run_chatcfd/Counterflow_Flame_2D_Laminar_1/case_run.log
+
+纠错方案：
+网格边界条件的修正
+纠错方案：
+网格边界条件的修正
+纠错方案：
+修改文件constant/thermo.compressibleGas
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      thermo.compressibleGas;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nO2\n{\n    specie\n    {\n        molWeight       31.9988;\n    }\n    elements\n    {\n        O       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 3.69758 0.00061352 -1.25884e-07 1.77528e-11 -1.13644e-15 -1233.93 3.18917 );\n        lowCpCoeffs     ( 3.21294 0.00112749 -5.75615e-07 1.31388e-09 -8.76855e-13 -1005.25 6.03474 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nH2O\n{\n    specie\n    {\n        molWeight       18.0153;\n    }\n    elements\n    {\n        O       1;\n        H       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 2.67215 0.00305629 -8.73026e-07 1.201e-10 -6.39162e-15 -29899.2 6.86282 );\n        lowCpCoeffs     ( 3.38684 0.00347498 -6.3547e-06 6.96858e-09 -2.50659e-12 -30208.1 2.59023 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nCH4\n{\n    specie\n    {\n        molWeight       16.0428;\n    }\n    elements\n    {\n        C       1;\n        H       4;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           6000;\n        Tcommon         1000;\n        highCpCoeffs    ( 1.63543 0.0100844 -3.36924e-06 5.34973e-10 -3.15528e-14 -10005.6 9.9937 );\n        lowCpCoeffs     ( 5.14988 -0.013671 4.91801e-05 -4.84744e-08 1.66694e-11 -10246.6 -4.64132 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nCO2\n{\n    specie\n    {\n        molWeight       44.01;\n    }\n    elements\n    {\n        C       1;\n        O       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 4.45362 0.00314017 -1.27841e-06 2.394e-10 -1.66903e-14 -48967 -0.955396 );\n        lowCpCoeffs     ( 2.27572 0.00992207 -1.04091e-05 6.86669e-09 -2.11728e-12 -48373.1 10.1885 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nN2\n{\n    specie\n    {\n        molWeight       28.0134;\n    }\n    elements\n    {\n        N       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 2.92664 0.00148798 -5.68476e-07 1.0097e-10 -6.75335e-15 -922.798 5.98053 );\n        lowCpCoeffs     ( 3.29868 0.00140824 -3.96322e-06 5.64152e-09 -2.44486e-12 -1020.9 3.95037 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: Remove erroneous 'specie' keyword from thermoType in constant/thermo.compressibleGas. The line "specie          specie;" in the thermoType block is invalid - specie properties are defined per-species in their respective sub-dictionaries, not in thermoType.
+
+Step 2: Modify thermoType section to:
+thermoType
+{
+    type            hePsiThermo;
+    mixture         reactingMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleEnthalpy;
+    equationOfState perfectGas;
+    // Remove 'specie' entry here
+}
+
+Step 3: Keep existing species definitions with their 'specie' sub-dictionaries unchanged. The molWeight/nMoles in each specie sub-dictionary correctly define composition while preserving mass fractions from initial/boundary conditions.
+
+Step 4: Verify Cp coefficients match actual JANAF data (current placeholder 1.0 values will cause inaccuracies but aren't fatal errors). Refer to tutorial sample_0 for valid polynomial coefficients while maintaining species molWeight consistency.
+=====Test round 6=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'specie' not found in dictionary "constant/thermo.compressibleGas/thermoType"
+
+
+file: constant/thermo.compressibleGas/thermoType at line 11 to 16.
+
+    From const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 457.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/thermo.compressibleGas
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      thermo.compressibleGas;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nO2\n{\n    specie\n    {\n        molWeight       31.9988;\n    }\n    elements\n    {\n        O       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 3.69758 0.00061352 -1.25884e-07 1.77528e-11 -1.13644e-15 -1233.93 3.18917 );\n        lowCpCoeffs     ( 3.21294 0.00112749 -5.75615e-07 1.31388e-09 -8.76855e-13 -1005.25 6.03474 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nH2O\n{\n    specie\n    {\n        molWeight       18.0153;\n    }\n    elements\n    {\n        O       1;\n        H       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 2.67215 0.00305629 -8.73026e-07 1.201e-10 -6.39162e-15 -29899.2 6.86282 );\n        lowCpCoeffs     ( 3.38684 0.00347498 -6.3547e-06 6.96858e-09 -2.50659e-12 -30208.1 2.59023 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nCH4\n{\n    specie\n    {\n        molWeight       16.0428;\n    }\n    elements\n    {\n        C       1;\n        H       4;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           6000;\n        Tcommon         1000;\n        highCpCoeffs    ( 1.63543 0.0100844 -3.36924e-06 5.34973e-10 -3.15528e-14 -10005.6 9.9937 );\n        lowCpCoeffs     ( 5.14988 -0.013671 4.91801e-05 -4.84744e-08 1.66694e-11 -10246.6 -4.64132 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nCO2\n{\n    specie\n    {\n        molWeight       44.01;\n    }\n    elements\n    {\n        C       1;\n        O       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 4.45362 0.00314017 -1.27841e-06 2.394e-10 -1.66903e-14 -48967 -0.955396 );\n        lowCpCoeffs     ( 2.27572 0.00992207 -1.04091e-05 6.86669e-09 -2.11728e-12 -48373.1 10.1885 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nN2\n{\n    specie\n    {\n        molWeight       28.0134;\n    }\n    elements\n    {\n        N       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 2.92664 0.00148798 -5.68476e-07 1.0097e-10 -6.75335e-15 -922.798 5.98053 );\n        lowCpCoeffs     ( 3.29868 0.00140824 -3.96322e-06 5.64152e-09 -2.44486e-12 -1020.9 3.95037 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: Remove the invalid `specie` entry in `thermoType`. Delete the line `specie          specie;` from the `thermoType` dictionary in constant/thermo.compressibleGas. The `specie` keyword is a per-species property and should not be declared globally in thermoType.  
+
+Step 2: Verify species definitions retain their individual `specie` sub-dictionaries (e.g., under `CH4`, `O2`, etc.). Ensure each `specie` block contains valid `molWeight` and `nMoles` entries. These are correctly structured in the provided file.  
+
+Step 3: Add `elements` sub-dictionaries to each species (CH4, O2, etc.) using proper stoichiometric coefficients. Example for CH4:  
+```
+elements
+{
+    C       1;
+    H       4;
+}
+```  
+Copy this pattern to all species using values from the tutorial sample.  
+
+Step 4: Replace placeholder `highCpCoeffs` and `lowCpCoeffs` coefficients with valid JANAF values from the tutorial reference to ensure accurate thermodynamics.  
+
+Step 5: Confirm `thermoType` does not conflict with boundary conditions. The `energy sensibleEnthalpy` and `equationOfState perfectGas` are compatible with the paper's `T` initial/boundary conditions.
+=====Test round 29=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'specie' not found in dictionary "constant/thermo.compressibleGas/thermoType"
+
+
+file: constant/thermo.compressibleGas/thermoType at line 11 to 16.
+
+    From const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 457.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/thermo.compressibleGas
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      thermo.compressibleGas;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nO2\n{\n    specie\n    {\n        molWeight       31.9988;\n    }\n    elements\n    {\n        O       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 3.69758 0.00061352 -1.25884e-07 1.77528e-11 -1.13644e-15 -1233.93 3.18917 );\n        lowCpCoeffs     ( 3.21294 0.00112749 -5.75615e-07 1.31388e-09 -8.76855e-13 -1005.25 6.03474 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nH2O\n{\n    specie\n    {\n        molWeight       18.0153;\n    }\n    elements\n    {\n        O       1;\n        H       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 2.67215 0.00305629 -8.73026e-07 1.201e-10 -6.39162e-15 -29899.2 6.86282 );\n        lowCpCoeffs     ( 3.38684 0.00347498 -6.3547e-06 6.96858e-09 -2.50659e-12 -30208.1 2.59023 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nCH4\n{\n    specie\n    {\n        molWeight       16.0428;\n    }\n    elements\n    {\n        C       1;\n        H       4;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           6000;\n        Tcommon         1000;\n        highCpCoeffs    ( 1.63543 0.0100844 -3.36924e-06 5.34973e-10 -3.15528e-14 -10005.6 9.9937 );\n        lowCpCoeffs     ( 5.14988 -0.013671 4.91801e-05 -4.84744e-08 1.66694e-11 -10246.6 -4.64132 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nCO2\n{\n    specie\n    {\n        molWeight       44.01;\n    }\n    elements\n    {\n        C       1;\n        O       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 4.45362 0.00314017 -1.27841e-06 2.394e-10 -1.66903e-14 -48967 -0.955396 );\n        lowCpCoeffs     ( 2.27572 0.00992207 -1.04091e-05 6.86669e-09 -2.11728e-12 -48373.1 10.1885 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\nN2\n{\n    specie\n    {\n        molWeight       28.0134;\n    }\n    elements\n    {\n        N       2;\n    }\n    thermodynamics\n    {\n        Tlow            200;\n        Thigh           5000;\n        Tcommon         1000;\n        highCpCoeffs    ( 2.92664 0.00148798 -5.68476e-07 1.0097e-10 -6.75335e-15 -922.798 5.98053 );\n        lowCpCoeffs     ( 3.29868 0.00140824 -3.96322e-06 5.64152e-09 -2.44486e-12 -1020.9 3.95037 );\n    }\n    transport\n    {\n        As              1.67212e-06;\n        Ts              170.672;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: Remove the entire `thermoType` section from `constant/thermo.compressibleGas`. This entry belongs in `thermophysicalProperties`, not in species definitions.
+
+Step 2: For each species (CH4, O2, N2, etc.), delete their `specie { ... }` subsection. Move `molWeight` values to each species' root level and rename to `molWeight` (without subsection). Keep all transport/thermodynamics parameters intact.
+
+Step 3: Add required `specie` entry in `constant/thermophysicalProperties` under the `mixture` section (not shown in current file) using format:
+```
+mixture            reactingMixture<specieGasTransport,constIsoThermo,perfectGas>>;
+```
+
+This resolves the missing `specie` error by relocating thermoType settings to the correct file and fixing species parameter structure. Preserves all initial/boundary conditions as no mass fractions or molecular weights are altered.

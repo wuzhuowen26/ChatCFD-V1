@@ -1,0 +1,116 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      thermophysicalProperties;
+}
+thermoType
+{
+    type            hePsiThermo;
+    mixture         reactingMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleEnthalpy;
+    equationOfState perfectGas;
+    specie          specie;
+}
+inertSpecie      N2;
+chemistryReader      foamChemistryReader;
+foamChemistryFile      "<constant>/reactions";
+foamChemistryThermoFile "<constant>/thermo.compressibleGas";
+mixture
+{
+    species ( CH4 O2 CO2 H2O N2 );
+    CH4
+    {
+        specie
+        {
+            nMoles          1;
+            molWeight       16.043;
+        }
+        thermodynamics
+        {
+            CpCoeffs<8> (1000 1500 2000 2500 3000 3500 4000 4500);
+            Hf              -74831e3;
+        }
+        transport
+        {
+            As              1.67212e-6;
+            Ts              170.672;
+        }
+    }
+    O2
+    {
+        specie
+        {
+            nMoles          1;
+            molWeight       32;
+        }
+        thermodynamics
+        {
+            CpCoeffs<8> (1000 1500 2000 2500 3000 3500 4000 4500);
+            Hf              0;
+        }
+        transport
+        {
+            As              1.746e-6;
+            Ts              127;
+        }
+    }
+    CO2
+    {
+        specie
+        {
+            nMoles          1;
+            molWeight       44.01;
+        }
+        thermodynamics
+        {
+            CpCoeffs<8> (1000 1500 2000 2500 3000 3500 4000 4500);
+            Hf              -393520e3;
+        }
+        transport
+        {
+            As              1.370e-6;
+            Ts            222;
+        }
+    }
+    H2O
+    {
+        specie
+        {
+            nMoles          1;
+            molWeight       18.015;
+        }
+        thermodynamics
+        {
+            CpCoeffs<8> (1000 1500 2000 2500 3000 3500 4000 4500);
+            Hf              -241830e3;
+        }
+        transport
+        {
+            As              1.076e-6;
+            Ts            524.07;
+        }
+    }
+    N2
+    {
+        specie
+        {
+            nMoles          1;
+            molWeight       28.014;
+        }
+        thermodynamics
+        {
+            CpCoeffs<8> (1000 1500 2000 2500 3000 3500 4000 4500);
+            Hf              0;
+        }
+        transport
+        {
+            As              1.663e-6;
+            Ts            107;
+        }
+    }
+}

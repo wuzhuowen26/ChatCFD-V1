@@ -1,0 +1,35 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      nut;
+}
+
+dimensions      [0 2 -1 0 0 0 0];
+
+internalField   uniform 0;
+
+boundaryField
+{
+    hot
+    {
+        type            nutkWallFunction;
+        value           uniform 0;
+    }
+    cold
+    {
+        type            nutkWallFunction;
+        value           uniform 0;
+    }
+    topAndBottom
+    {
+        type            nutkWallFunction;
+        value           uniform 0;
+    }
+    frontAndBack
+    {
+        type            nutkWallFunction;
+        value           uniform 0;
+    }
+}

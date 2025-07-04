@@ -1,0 +1,218 @@
+****************error_history****************
+=====Test round 0=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Required entry 'freestreamValue' missing in dictionary "0/p/boundaryField/inlet"
+
+
+file: 0/p/boundaryField/inlet at line 14 to 15.
+
+    From bool Foam::Field<Type>::assign(const Foam::word&, const Foam::dictionary&, Foam::label, Foam::IOobjectOption::readOption) [with Type = double; Foam::label = int]
+    in file ./src/OpenFOAM/lnInclude/Field.C at line 297.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/p
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      p;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [0 2 -2 0 0 0 0];\n\ninternalField   uniform 0;\n\nboundaryField\n{\n    inlet\n    {\n        type            freestreamPressure;\n        freestreamValue $internalField;\n    }\n\n    outlet\n    {\n        type            freestreamPressure;\n        freestreamValue $internalField;\n    }\n\n    walls\n    {\n        type            zeroGradient;\n    }\n\n    frontAndBack\n    {\n        type            empty;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error occurs because 'freestreamPressure' boundary condition requires 'freestreamValue' entry instead of 'value'. Modify 0/p as follows:
+
+1. Locate the 'inlet' boundary in 0/p: Change 'value' to 'freestreamValue' while keeping the value 'uniform 0'. 
+2. Apply the same change to the 'outlet' boundary. 
+3. Ensure no other parameters are altered. 
+
+Revised 0/p boundaryField sections:
+inlet { type freestreamPressure; freestreamValue uniform 0; }
+outlet { type freestreamPressure; freestreamValue uniform 0; }
+
+This maintains the paper's specified conditions while fulfilling the freestreamPressure syntax requirements. Do not add any unrelated keywords like 'value' under these boundaries.
+=====Test round 1=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Required entry 'freestreamValue' missing in dictionary "0/U/boundaryField/inlet"
+
+
+file: 0/U/boundaryField/inlet at line 14 to 15.
+
+    From bool Foam::Field<Type>::assign(const Foam::word&, const Foam::dictionary&, Foam::label, Foam::IOobjectOption::readOption) [with Type = Foam::Vector<double>; Foam::label = int]
+    in file ./src/OpenFOAM/lnInclude/Field.C at line 297.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/U
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volVectorField;\n    object      U;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [0 1 -1 0 0 0 0];\n\ninternalField   uniform (25.75 3.62 0);\n\nboundaryField\n{\n    inlet\n    {\n        type            freestreamVelocity;\n        freestreamValue $internalField;\n    }\n\n    outlet\n    {\n        type            freestreamVelocity;\n        freestreamValue $internalField;\n    }\n\n    walls\n    {\n        type            noSlip;\n    }\n\n    frontAndBack\n    {\n        type            empty;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: Open 0/U file. Locate boundaryField/inlet section (lines 14-15).  
+Step 2: Replace "value" keyword with "freestreamValue" in both inlet and outlet boundary conditions.  
+Step 3: Modify boundaryField block to:  
+inlet { type freestreamVelocity; freestreamValue $internalField; }  
+outlet { type freestreamVelocity; freestreamValue $internalField; }  
+Step 4: Remove explicit "value" entries. freestreamVelocity BC requires freestreamValue parameter instead of value.  
+Step 5: Preserve all other entries (dimensions, internalField, airfoil BC) as they match paper's initial/boundary conditions.  
+
+Rationale: The error occurs because freestreamVelocity BC requires freestreamValue parameter to define external flow velocity. The tutorial example shows proper syntax using $internalField reference. This correction maintains original velocity magnitudes (52.05 m/s) while using correct BC syntax.
+=====Test round 2=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'transportModel' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/Case_1_SA_NACA0012_0/constant/transportProperties"
+
+
+file: constant/transportProperties at line 8.
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = Foam::word]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件constant/transportProperties
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      transportProperties;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ntransportModel  Newtonian;\n\nnu              1e-05;\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Add the missing 'transportModel' entry to constant/transportProperties by inserting 'transportModel  Newtonian;' above the 'nu' entry. This resolves the fatal error caused by OpenFOAM's requirement for specifying a viscosity model when using incompressible solvers. The existing 'nu' value matches the tutorial's structure and preserves initial/boundary conditions. Do NOT remove 'nu' - it remains necessary for turbulence model calculations. Modified file contents:
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      transportProperties;
+}
+transportModel  Newtonian;
+nu              [0 2 -1 0 0 0 0] 8.675e-06;
+=====Test round 3=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'freestreamBC' not found in dictionary "0/nut/boundaryField/inlet"
+
+
+file: 0/nut/boundaryField/inlet at line 14 to 15.
+
+    From const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 457.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/nut
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      nut;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [0 2 -1 0 0 0 0];\n\ninternalField   uniform 1e-05;\n\nboundaryField\n{\n    inlet\n    {\n        type            freestream;\n        freestreamValue $internalField;\n    }\n\n    outlet\n    {\n        type            freestream;\n        freestreamValue $internalField;\n    }\n\n    walls\n    {\n        type            nutUSpaldingWallFunction;\n        value           uniform 0;\n    }\n\n    frontAndBack\n    {\n        type            empty;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Step 1: In 0/nut's boundaryField/inlet and outlet entries, replace "value" with "freestreamValue" to match the freestream BC requirements. The entry "value" is invalid for this BC type. The corrected entries for both should be:
+{type freestream; freestreamValue uniform 0;}
+
+Step 2: Confirm no "freestreamBC" keyword exists in 0/nut. This term doesn't belong to OpenFOAM's nut boundary conditions and must be removed if present. Only valid entries are "type" and "freestreamValue" for freestream BCs.
+
+Step 3: Ensure airfoil BC remains unchanged as {type nutLowReWallFunction; value uniform 0;} to maintain paper-specified no-slip wall conditions. This matches the required setup for turbulence wall treatment.
+=====Test round 4=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'freestreamBC' not found in dictionary "0/nuTilda/boundaryField/inlet"
+
+
+file: 0/nuTilda/boundaryField/inlet at line 14 to 15.
+
+    From const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&, Foam::keyType::option) const
+    in file db/dictionary/dictionary.C at line 457.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件0/nuTilda
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      nuTilda;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\ndimensions      [0 2 -1 0 0 0 0];\n\ninternalField   uniform 4e-05;\n\nboundaryField\n{\n    inlet\n    {\n        type            freestream;\n        freestreamValue $internalField;\n    }\n\n    outlet\n    {\n        type            freestream;\n        freestreamValue $internalField;\n    }\n\n    walls\n    {\n        type            fixedValue;\n        value           uniform 0;\n    }\n\n    frontAndBack\n    {\n        type            empty;\n    }\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+The error occurs because the 'freestreamBC' entry is missing in the nuTilda boundary field for 'inlet'. The 'freestream' type requires a 'freestreamValue' entry instead of 'value'. Revise the inlet/outlet entries in 0/nuTilda to:
+
+boundaryField
+{
+    inlet
+    {
+        type            freestream;
+        freestreamValue $internalField;
+    }
+    outlet
+    {
+        type            freestream;
+        freestreamValue $internalField;
+    }
+    airfoil
+    {
+        type            fixedValue;
+        value           uniform 0;
+    }
+}
+
+This preserves initial conditions (internalField) and matches the paper's BCs. The 'freestreamValue' correctly references the internalField instead of hardcoded values. Remove any 'value' entries under freestream boundaries as they conflict with freestreamValue.
+=====Test round 5=====
+运行错误:
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2406 patch=241212)
+Entry 'method' not found in dictionary "/home/ChatCFD_0527/run_chatcfd/Case_1_SA_NACA0012_0/system/fvSchemes/wallDist"
+
+
+file: system/fvSchemes/wallDist
+
+    From bool Foam::dictionary::readEntry(const Foam::word&, T&, Foam::keyType::option, Foam::IOobjectOption::readOption) const [with T = Foam::word]
+    in file ./src/OpenFOAM/lnInclude/dictionaryTemplates.C at line 327.
+
+FOAM exiting
+
+
+纠错方案：
+修改文件system/fvSchemes
+参考文件：
+{
+  "sample_file_0": "FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      fvSchemes;\n}\n// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //\n\nddtSchemes\n{\n    default         steadyState;\n}\n\ngradSchemes\n{\n    default         Gauss linear;\n}\n\ndivSchemes\n{\n    default         none;\n\n    div(phi,U)      bounded Gauss linearUpwind grad(U);\n\n    div(phi,nuTilda) bounded Gauss linearUpwind grad(nuTilda);\n\n    div((nuEff*dev2(T(grad(U))))) Gauss linear;\n}\n\nlaplacianSchemes\n{\n    default         Gauss linear corrected;\n}\n\ninterpolationSchemes\n{\n    default         linear;\n}\n\nsnGradSchemes\n{\n    default         corrected;\n}\n\nwallDist\n{\n    method          meshWave;\n}\n\n\n// ************************************************************************* //\n"
+}
+修改建议：
+
+
+Add 'method meshWave;' inside the 'wallDist' dictionary in system/fvSchemes. The error occurs because the mandatory 'method' entry for wall distance calculation is missing. Correct the wallDist section as follows:
+
+wallDist
+{
+    method          meshWave;
+}
+
+This revision adds the required keyword without altering initial/boundary conditions. The 'wallDist' dictionary belongs in fvSchemes and requires explicit method specification for distance calculation.

@@ -14,7 +14,7 @@ print(f"GPU Name: {torch.cuda.get_device_name(0) if torch.cuda.is_available() el
 #                           device='cuda' if torch.cuda.is_available() else 'cpu')
 
 # model = SentenceTransformer("/home/hk/bge-base-en-v1.5")
-model = SentenceTransformer("/home/hk/all-mpnet-base-v2")
+model = SentenceTransformer("/home/all-mpnet-base-v2")
 
 # Test embeddings
 sentences = [
@@ -28,3 +28,6 @@ embeddings = model.encode(sentences)
 # Quick similarity check
 print(f"Similarity 0-1: {embeddings[0] @ embeddings[1].T:.3f}")
 print(f"Similarity 0-2: {embeddings[0] @ embeddings[2].T:.3f}")
+
+embeddings = model.encode(sentences,convert_to_numpy=True,show_progress_bar=False)
+print(embeddings)

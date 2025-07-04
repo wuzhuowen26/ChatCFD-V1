@@ -1,0 +1,139 @@
+
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      thermo.compressibleGas;
+}
+
+CH4
+{
+    specie
+    {
+        molWeight       16.043;
+    }
+    thermodynamics
+    {
+        Hf              -74873000;
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    (1000 0 0 0 0 0 0);
+        lowCpCoeffs     (1000 0 0 0 0 0 0);
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+    equationOfState
+    {
+        perfectGas;
+    }
+}
+
+O2
+{
+    specie
+    {
+        molWeight       32.000;
+    }
+    thermodynamics
+    {
+        Hf              0;
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    (1000 0 0 0 0 0 0);
+        lowCpCoeffs     (1000 0 0 0 0 0 0);
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+    equationOfState
+    {
+        perfectGas;
+    }
+}
+
+CO2
+{
+    specie
+    {
+        molWeight       44.010;
+    }
+    thermodynamics
+    {
+        Hf              -393522000;
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    (1000 0 0 0 0 0 0);
+        lowCpCoeffs     (1000 0 0 0 0 0 0);
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+    equationOfState
+    {
+        perfectGas;
+    }
+}
+
+H2O
+{
+    specie
+    {
+        molWeight       18.015;
+    }
+    thermodynamics
+    {
+        Hf              -241827000;
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    (1000 0 0 0 0 0 0);
+        lowCpCoeffs     (1000 0 0 0 0 0 0);
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+    equationOfState
+    {
+        perfectGas;
+    }
+}
+
+N2
+{
+    specie
+    {
+        molWeight       28.014;
+    }
+    thermodynamics
+    {
+        Hf              0;
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    (1000 0 0 0 0 0 0);
+        lowCpCoeffs     (1000 0 0 0 0 0 0);
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+    equationOfState
+    {
+        perfectGas;
+    }
+}

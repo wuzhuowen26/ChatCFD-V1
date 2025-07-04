@@ -10,9 +10,11 @@ import tiktoken
 from datetime import datetime
 import qa_modules, config, os
 
+import config
+
 class CFDCaseExtractor:
     # def __init__(self, model_name='sentence-transformers/all-mpnet-base-v2'):
-    def __init__(self, model_name='/home/hk/all-mpnet-base-v2'):
+    def __init__(self, model_name=config.sentence_transformer_path):
         self.embedder = SentenceTransformer(model_name)
         self.client = OpenAI(
             api_key=os.environ.get("DEEPSEEK_R1_KEY"), 
