@@ -10,6 +10,7 @@
     "run_time":3,
     "OpenFOAM_path":"/usr/lib/openfoam/openfoam2406",
     "OpenFOAM_tutorial_path":"/usr/lib/openfoam/openfoam2406/tutorials",
+    "sentence_transformer_path": "/home/all-mpnet-base-v2"
     "max_running_test_round":30,
     "pdf_chunk_d" : 1.5
 }
