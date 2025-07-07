@@ -16,7 +16,7 @@ print(f"GPU Name: {torch.cuda.get_device_name(0) if torch.cuda.is_available() el
 #                           device='cuda' if torch.cuda.is_available() else 'cpu')
 
 # model = SentenceTransformer("/home/hk/bge-base-en-v1.5")
-model = SentenceTransformer("/home/all-mpnet-base-v2")
+model = SentenceTransformer("/sentence-transformers/all-mpnet-base-v2")
 
 # Test embeddings
 sentences = [
