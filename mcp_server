@@ -7,16 +7,52 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import TypedDict, Optional, List, Dict, Any
+
+# Import pdfplumber for PDF text extraction
+import pdfplumber
+
+# Using FastMCP as specified by the user
 from mcp.server.fastmcp import FastMCP
-# from dp.agent.server import CalculationMCPServer
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# mcp = CalculationMCPServer("OpenFOAMCFDSimulator",host="0.0.0.0", port=50001)
-mcp = FastMCP("OpenFOAMCFDSimulator", host="0.0.0.0",port=50001)
+# Initialize the FastMCP server
+mcp = FastMCP("OpenFOAMCFDSimulator", host="0.0.0.0", port=50001)
 
 # --- Helper Functions ---
+
+def _clean_text_for_pdf_extraction(text: str, page_number: int) -> str:
+    """
+    Performs multi-stage text cleaning on extracted PDF text.
+    This function is adapted from the provided CFDCaseExtractor.clean_text method.
+
+    Args:
+        text (str): The raw text extracted from a PDF page.
+        page_number (int): The page number from which the text was extracted.
+
+    Returns:
+        str: The cleaned text, with page metadata added.
+    """
+    # Stage 1: Merge hyphenated words broken by newline
+    text = re.sub(r'(?<=\w)-\n(?=\w)', '', text)
+
+    # Stage 2: Handle numbers and units broken by newline
+    text = re.sub(r'\n(?=\d+\s*[A-Za-z]{1,3}\b)', ' ', text)
+
+    # Stage 3: Remove isolated page numbers (lines containing only digits and whitespace)
+    text = re.sub(r'^\s*\d+\s*$', '', text, flags=re.MULTILINE)
+
+    # Stage 4: Compress excessive whitespace
+    text = re.sub(r'\n{3,}', '\n\n', text)  # Multiple newlines compressed to two
+    text = re.sub(r'[ \t]{2,}', ' ', text)    # Multiple spaces/tabs compressed to one
+
+    # Stage 5: Filter out very short lines (often chart labels or noise)
+    lines = [line.strip() for line in text.split('\n') if len(line.strip()) > 3]
+
+    # Add page metadata
+    return f"Page {page_number}:\n" + "\n".join(lines) if lines else ""
+
 
 def _extract_boundary_names_from_polyMesh(case_path: Path) -> List[str]:
     """
@@ -54,242 +90,110 @@ def _extract_boundary_names_from_polyMesh(case_path: Path) -> List[str]:
         return []
     return names
 
-def _read_pdf_text(pdf_path: Path) -> str:
-    """
-    Simulates extracting text from a PDF file.
-    In a real scenario, this would use a library like PyPDF2 or pdfplumber.
-    This function is primarily for demonstrating ADK agent interaction and
-    mocking its output for MCP tool testing.
-
-    Args:
-        pdf_path (Path): The path to the PDF file.
-
-    Returns:
-        str: A simulated text content from the PDF.
-    """
-    # Placeholder for actual PDF reading logic
-    # from PyPDF2 import PdfReader
-    # reader = PdfReader(pdf_path)
-    # text = ""
-    # for page in reader.pages:
-    #     text += page.extract_text() or ""
-    # return text
-
-    logging.info(f"Simulating PDF text extraction from {pdf_path}")
-    return f"""
-    This paper presents a 2D steady-state incompressible flow simulation around a circular cylinder.
-    The Reynolds number is 100.
-    Inlet velocity boundary condition is applied at the left boundary.
-    Outlet pressure boundary condition is applied at the right boundary.
-    The top and bottom boundaries are symmetry planes.
-    The cylinder surface is a no-slip wall.
-    The domain has a specific mesh, typically starting from a .msh file.
-    The simulation uses the SIMPLE algorithm.
-    """
-
-def _mock_llm_api_call(prompt: str, model_name: str) -> str:
-    """
-    Mocks an API call to an LLM, returning predefined JSON strings based on prompts.
-    This function is intended for internal ADK agent use and testing, not directly by MCP tools.
-
-    Args:
-        prompt (str): The prompt sent to the LLM.
-        model_name (str): The name of the LLM model.
-
-    Returns:
-        str: A JSON string representing the LLM's simulated response.
-    """
-    logging.debug(f"Mock LLM Call with model '{model_name}': {prompt[:100]}...")
-    if "extract all the simulation conditions" in prompt:
-        return json.dumps({
-            "case_description": "这是一个关于圆柱绕流的二维稳态不可压缩流动仿真。雷诺数为100，速度入口，压力出口。",
-            "solver": "simpleFoam",
-            "turbulence_model": "laminar",
-            "physical_model": "incompressible"
-        })
-    elif "boundary conditions (B.C.)" in prompt:
-        return json.dumps({"inlet": "fixedValue", "outlet": "pressureOutlet", "cylinderWall": "noSlip", "frontAndBack": "empty", "topAndBottom": "symmetryPlane"})
-    elif "initial and boundary conditions" in prompt:
-        return json.dumps({
-            "U": {"internalField": "[0 0 0]", "boundaryField": {"inlet": {"type": "fixedValue", "value": "uniform (1 0 0)"}, "outlet": {"type": "zeroGradient"}, "cylinderWall": {"type": "noSlip"}, "frontAndBack": {"type": "empty"}, "topAndBottom": {"type": "symmetryPlane"}}},
-            "p": {"internalField": 0, "boundaryField": {"inlet": {"type": "zeroGradient"}, "outlet": {"type": "fixedValue", "value": "uniform 0"}, "cylinderWall": {"type": "zeroGradient"}, "frontAndBack": {"type": "empty"}, "topAndBottom": {"type": "symmetryPlane"}}}
-        })
-    elif "draft all the cases files" in prompt:
-        return json.dumps({
-            "system/controlDict": """FoamFile
-{
-    version       2.0;
-    format        ascii;
-    class         dictionary;
-    object        controlDict;
-}
-application     simpleFoam;
-startFrom       startTime;
-startTime       0;
-stopAt          endTime;
-endTime         1000;
-deltaT          1;
-writeControl    adjustableRunTime;
-writeInterval   100;
-purgeWrite      0;
-writeFormat     ascii;
-writePrecision  6;
-writeCompression off;
-timeFormat      general;
-timePrecision   6;
-runTimeModifiable true;
-""",
-            "0/U": """FoamFile
-{
-    version       2.0;
-    format        ascii;
-    class         volVectorField;
-    object        U;
-}
-dimensions      [0 1 -1 0 0 0 0];
-internalField   uniform (0 0 0);
-boundaryField
-{
-    inlet
-    {
-        type            fixedValue;
-        value           uniform (1 0 0);
-    }
-    outlet
-    {
-        type            zeroGradient;
-    }
-    cylinderWall
-    {
-        type            noSlip;
-    }
-    frontAndBack
-    {
-        type            empty;
-    }
-    topAndBottom
-    {
-        type            symmetryPlane;
-    }
-}
-""",
-            "0/p": """FoamFile
-{
-    version       2.0;
-    format        ascii;
-    class         volScalarField;
-    object        p;
-}
-dimensions      [0 2 -2 0 0 0 0];
-internalField   uniform 0;
-boundaryField
-{
-    inlet
-    {
-        type            zeroGradient;
-    }
-    outlet
-    {
-        type            fixedValue;
-        value           uniform 0;
-    }
-    cylinderWall
-    {
-        type            zeroGradient;
-    }
-    frontAndBack
-    {
-        type            empty;
-    }
-    topAndBottom
-    {
-        type            symmetryPlane;
-    }
-}
-""",
-            "system/fvSolution": """FoamFile
-{
-    version       2.0;
-    format        ascii;
-    class         dictionary;
-    object        fvSolution;
-}
-solvers
-{
-    p
-    {
-        solver          GAMG;
-        smoother        GaussSeidel;
-        tolerance       1e-06;
-        relTol          0.01;
-    }
-    U
-    {
-        solver          PBiCG;
-        preconditioner  DILU;
-        tolerance       1e-05;
-        relTol          0.1;
-    }
-}
-PISO
-{
-    nCorrectors     2;
-    nNonOrthogonalCorrectors 0;
-    pRefCell        0;
-    pRefValue       0;
-}
-""",
-            "system/fvSchemes": """FoamFile
-{
-    version       2.0;
-    format        ascii;
-    class         dictionary;
-    object        fvSchemes;
-}
-ddtSchemes
-{
-    default         Euler;
-}
-gradSchemes
-{
-    default         Gauss linear;
-    grad(p)         Gauss linear;
-}
-divSchemes
-{
-    default         none;
-    div(phi,U)      Gauss linearUpwindV;
-    div(phi,k)      Gauss upwind;
-    div(phi,epsilon) Gauss upwind;
-}
-laplacianSchemes
-{
-    default         Gauss linear corrected;
-}
-interpolationSchemes
-{
-    default         linear;
-}
-snGradSchemes
-{
-    default         corrected;
-}
-""",
-            "constant/transportProperties": """FoamFile
-{
-    version       2.0;
-    format        ascii;
-    class         dictionary;
-    object        transportProperties;
-}
-nu              nu [0 2 -1 0 0 0 0] 1e-06;
-"""
-        })
-    return json.dumps({})
-
+# Removed _read_pdf_text helper as its functionality is now replaced by the new MCP tool.
+# Removed _mock_llm_api_call helper as it belongs in the ADK agent script, not the MCP tool script.
 
 
 ## MCP Tools Definition
+
+### `ExtractPdfText` (New Tool)
+class PdfTextResult(TypedDict):
+    """Result structure for extract_pdf_text tool."""
+    status: str
+    message: str
+    extracted_text: str
+
+@mcp.tool()
+def extract_pdf_text(
+    pdf_file_path: Path
+) -> PdfTextResult:
+    """
+    Extracts and cleans text content from a PDF file.
+
+    Args:
+        pdf_file_path (Path): The path to the input PDF file.
+
+    Returns:
+        PdfTextResult: A dictionary containing the extraction status,
+                       a message, and the extracted text content.
+    """
+    if not pdf_file_path.exists():
+        logging.error(f"PDF file not found: {pdf_file_path}")
+        return {
+            "status": "failure",
+            "message": f"PDF file not found: {pdf_file_path}",
+            "extracted_text": ""
+        }
+    if not pdf_file_path.is_file():
+        logging.error(f"Provided path is not a file: {pdf_file_path}")
+        return {
+            "status": "failure",
+            "message": f"Provided path is not a file: {pdf_file_path}",
+            "extracted_text": ""
+        }
+
+    text_blocks = []
+    try:
+        logging.info(f"Starting PDF text extraction from: {pdf_file_path}")
+        with pdfplumber.open(pdf_file_path) as pdf:
+            for i, page in enumerate(pdf.pages):
+                # Define effective text area (in points)
+                bbox = (
+                    50,  # left margin
+                    50,  # top margin (skip header)
+                    page.width - 50,  # right margin
+                    page.height - 50  # bottom margin (skip footer)
+                )
+
+                # Create filter function to crop page content
+                crop_filter = lambda obj: (
+                    obj["x0"] >= bbox[0] and
+                    obj["top"] >= bbox[1] and
+                    obj["x1"] <= bbox[2] and
+                    obj["bottom"] <= bbox[3]
+                )
+
+                # Apply area filtering
+                cropped_page = page.filter(crop_filter)
+
+                # Optimize text extraction parameters
+                text = cropped_page.extract_text(
+                    layout=True,
+                    x_tolerance=3,
+                    y_tolerance=2,
+                    keep_blank_chars=False,
+                    extra_attrs=["size", "fontname"]
+                )
+
+                # Clean text using the helper function
+                cleaned_text = _clean_text_for_pdf_extraction(text, page_number=i + 1)
+                if cleaned_text:
+                    text_blocks.append(cleaned_text)
+                logging.debug(f"Extracted and cleaned text from page {i+1}.")
+
+        full_extracted_text = "\n".join(text_blocks)
+        logging.info(f"Successfully extracted text from {len(pdf.pages)} pages of {pdf_file_path}.")
+        return {
+            "status": "success",
+            "message": "PDF text extracted successfully.",
+            "extracted_text": full_extracted_text
+        }
+    except pdfplumber.PDFSyntaxError as e:
+        logging.error(f"PDF syntax error in {pdf_file_path}: {e}")
+        return {
+            "status": "failure",
+            "message": f"PDF syntax error: {e}. Please check the PDF file.",
+            "extracted_text": ""
+        }
+    except Exception as e:
+        logging.exception(f"An unexpected error occurred during PDF text extraction from {pdf_file_path}.")
+        return {
+            "status": "failure",
+            "message": f"An unexpected error occurred during PDF text extraction: {e}",
+            "extracted_text": ""
+        }
+
+
 ### `ExtractSimulationConditions`
 
 class SimulationConditionsResult(TypedDict):
@@ -353,8 +257,6 @@ def extract_simulation_conditions(
         }
 
 
-
-
 ### `ProcessMeshAndExtractBoundaries`
 
 class MeshProcessResult(TypedDict):
@@ -388,6 +290,22 @@ def process_mesh_and_extract_boundaries(
     original_cwd = os.getcwd()
 
     try:
+        # Input validation
+        if not msh_file_path.exists():
+            logging.error(f"Mesh file not found: {msh_file_path}")
+            return {
+                "status": "failure",
+                "message": f"Mesh file not found: {msh_file_path}",
+                "case_output_path": Path(""), "boundary_names": []
+            }
+        if not msh_file_path.is_file():
+            logging.error(f"Provided mesh path is not a file: {msh_file_path}")
+            return {
+                "status": "failure",
+                "message": f"Provided mesh path is not a file: {msh_file_path}",
+                "case_output_path": Path(""), "boundary_names": []
+            }
+
         case_output_path.mkdir(parents=True, exist_ok=True)
         logging.info(f"Created case directory: {case_output_path}")
 
@@ -464,7 +382,7 @@ def process_mesh_and_extract_boundaries(
             logging.info(f"Changed back to original directory: {original_cwd}")
 
 
-
+### `GenerateOpenFOAMCaseFiles`
 
 class GeneratedFilesResult(TypedDict):
     """Result structure for generate_openfoam_case_files tool."""
@@ -498,6 +416,15 @@ def generate_openfoam_case_files(
                               a message, and the path to the case directory.
     """
     try:
+        # Input validation
+        if not case_path.is_dir():
+            logging.error(f"Case path '{case_path}' does not exist or is not a directory.")
+            return {
+                "status": "failure",
+                "message": f"Case path '{case_path}' does not exist or is not a directory. Cannot write files.",
+                "case_path": case_path
+            }
+
         generated_files_content: Dict[str, str] = json.loads(llm_case_files_content_json)
 
         if not isinstance(generated_files_content, dict):
@@ -531,7 +458,6 @@ def generate_openfoam_case_files(
             "message": f"An error occurred while writing case files: {e}",
             "case_path": case_path
         }
-
 
 
 ### `RunOpenFOAMSimulation`
