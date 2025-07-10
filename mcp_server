@@ -1,9 +1,8 @@
-import json
-import logging
 import os
+import subprocess
+import logging
 import re
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 from typing import TypedDict, Optional, List, Dict, Any
@@ -74,16 +73,15 @@ def _extract_boundary_names_from_polyMesh(case_path: Path) -> List[str]:
     try:
         with open(boundary_file, 'r', encoding='utf-8') as f:
             content = f.read()
-            # Find the 'boundary' dictionary
-            boundary_match = re.search(r"boundary\s*\{([^}]*)\}", content, re.DOTALL)
-            if not boundary_match:
-                logging.warning(f"Could not find 'boundary' section in {boundary_file}")
-                return []
-
-            boundary_section = boundary_match.group(1)
-            # Find all names that precede an opening brace '{'
-            name_matches = re.findall(r"^\s*([a-zA-Z0-9_]+)\s*\{", boundary_section, re.MULTILINE)
-            names = [name.strip() for name in name_matches if name.strip()]
+            # 改进后的正则表达式：
+            # 查找以非数字开头，后面可以跟数字、字母、下划线、短横线的单词
+            # 后面紧跟着一个 '{'，并且 'type' 关键字在同一个块内
+            # 这比仅仅匹配 '{' 更健壮，因为确保它是一个边界定义块的开始
+            found_patches = re.findall(r'^\s*([a-zA-Z_][a-zA-Z0-9_-]*)\s*\{\s*type\s+\w+;', content, re.MULTILINE)
+            
+            # 过滤掉 OpenFOAM 默认的内部或辅助补丁
+            boundary_names = [name for name in found_patches if name not in ["defaultFaces", "defaultPatches"]]
+            names = boundary_names
             logging.info(f"Extracted boundary names: {names}")
     except Exception as e:
         logging.error(f"Error extracting boundary names from {boundary_file}: {e}")
@@ -144,6 +142,8 @@ runTimeModifiable true;
 
 
 ## MCP Tools Definition
+
+
 
 ### `ExtractPdfText` (New Tool)
 
@@ -244,6 +244,8 @@ def extract_pdf_text(
         }
 
 
+
+
 ### `ExtractSimulationConditions`
 
 class SimulationConditionsResult(TypedDict):
@@ -305,6 +307,8 @@ def extract_simulation_conditions(
             "message": f"An unexpected error occurred while parsing simulation conditions: {e}",
             "case_description": "", "solver": "", "turbulence_model": None, "physical_model": None
         }
+
+
 
 
 ### `ProcessMeshAndExtractBoundaries`
@@ -413,10 +417,14 @@ def process_mesh_and_extract_boundaries(
         logging.info("Mesh conversion completed successfully.")
         logging.debug(f"fluentMeshToFoam Stdout: {process.stdout}")
 
+        # 这里的 _extract_boundary_names_from_polyMesh 已经使用了新的、更健壮的正则表达式
         boundary_names = _extract_boundary_names_from_polyMesh(case_output_path)
 
         if not boundary_names:
             logging.warning("Mesh conversion successful, but no boundary names could be extracted.")
+            # 将此处的返回状态从 "failure" 改为 "partial_success" 或保持 "success"
+            # 具体取决于你希望这种情况下如何报告给上层代理
+            # 这里我保持为 "failure"，因为无法获取边界名称通常是一个关键问题
             return {
                 "status": "failure",
                 "message": "Mesh conversion successful, but failed to extract boundary names. Please check the mesh file structure.",
@@ -449,6 +457,8 @@ def process_mesh_and_extract_boundaries(
         if os.getcwd() != original_cwd:
             os.chdir(original_cwd)
             logging.info(f"Changed back to original directory: {original_cwd}")
+
+
 
 
 ### `GenerateOpenFOAMCaseFiles`
@@ -527,6 +537,8 @@ def generate_openfoam_case_files(
             "message": f"An error occurred while writing case files: {e}",
             "case_path": case_path
         }
+
+
 
 
 ### `RunOpenFOAMSimulation`
