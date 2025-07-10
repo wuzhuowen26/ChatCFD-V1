@@ -90,13 +90,65 @@ def _extract_boundary_names_from_polyMesh(case_path: Path) -> List[str]:
         return []
     return names
 
-# Removed _read_pdf_text helper as its functionality is now replaced by the new MCP tool.
-# Removed _mock_llm_api_call helper as it belongs in the ADK agent script, not the MCP tool script.
+# --- NEW HELPER FUNCTION: Create Minimal OpenFOAM Case Structure ---
+def _create_minimal_openfoam_case_structure(case_path: Path, solver_name: str = "fluentMeshToFoam", end_time: int = 1):
+    """
+    为 OpenFOAM 案例创建必要的目录和最简的 controlDict 文件。
+    此函数现在接受 solver_name 和 end_time 参数来初始化 controlDict。
+
+    Args:
+        case_path (Path): OpenFOAM 案例的根目录。
+        solver_name (str): 模拟将使用的 OpenFOAM 求解器名称。
+                           默认为 "fluentMeshToFoam"，因为在网格转换阶段，这是实际运行的“应用程序”。
+        end_time (int): 模拟的结束时间。默认为 1。
+    """
+    system_dir = case_path / "system"
+    constant_dir = case_path / "constant"
+    time_0_dir = case_path / "0"
+
+    system_dir.mkdir(parents=True, exist_ok=True)
+    constant_dir.mkdir(parents=True, exist_ok=True)
+    time_0_dir.mkdir(parents=True, exist_ok=True)
+
+    # Minimal controlDict content
+    control_dict_content = f"""FoamFile
+{{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      controlDict;
+}}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     {solver_name};
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         {end_time};
+deltaT          1;
+writeControl    timeStep;
+writeInterval   1;
+purgeWrite      0;
+writeFormat     ascii;
+writePrecision  6;
+writeCompression off;
+timeFormat      general;
+timePrecision   6;
+runTimeModifiable true;
+
+// ************************************************************************* //
+"""
+    (system_dir / "controlDict").write_text(control_dict_content)
+    logging.info(f"已在 {case_path} 创建最简 OpenFOAM 案例结构，controlDict 中 application 为 '{solver_name}', endTime 为 {end_time}。")
 
 
 ## MCP Tools Definition
 
+---
+
 ### `ExtractPdfText` (New Tool)
+
 class PdfTextResult(TypedDict):
     """Result structure for extract_pdf_text tool."""
     status: str
@@ -194,6 +246,8 @@ def extract_pdf_text(
         }
 
 
+---
+
 ### `ExtractSimulationConditions`
 
 class SimulationConditionsResult(TypedDict):
@@ -257,6 +311,8 @@ def extract_simulation_conditions(
         }
 
 
+---
+
 ### `ProcessMeshAndExtractBoundaries`
 
 class MeshProcessResult(TypedDict):
@@ -270,7 +326,11 @@ class MeshProcessResult(TypedDict):
 def process_mesh_and_extract_boundaries(
     msh_file_path: Path,
     output_base_path: Path,
-    case_name: str
+    case_name: str,
+    # 增加可选参数，用于在网格处理阶段就初始化 controlDict
+    # 默认值是为了让它在没有LLM信息时也能工作，但推荐实际传入
+    initial_solver_name: str = "fluentMeshToFoam", # 默认用于网格转换的 application
+    initial_end_time: int = 1 # 默认值，可在后续通过LLM信息更新
 ) -> MeshProcessResult:
     """
     Converts a Fluent mesh file (.msh) to OpenFOAM format and extracts
@@ -280,6 +340,12 @@ def process_mesh_and_extract_boundaries(
         msh_file_path (Path): The path to the input Fluent mesh file.
         output_base_path (Path): The base directory where the OpenFOAM case will be created.
         case_name (str): The name of the OpenFOAM case directory to be created.
+        initial_solver_name (str, optional): controlDict 中 'application' 字段的初始值。
+                                            通常在网格转换阶段为 "fluentMeshToFoam"，
+                                            后续会由LLM根据模拟需求更新为实际求解器。
+                                            默认为 "fluentMeshToFoam"。
+        initial_end_time (int, optional): controlDict 中 'endTime' 字段的初始值。
+                                         后续会由LLM根据模拟需求更新。默认为 1。
 
     Returns:
         MeshProcessResult: A dictionary containing the processing status,
@@ -291,6 +357,11 @@ def process_mesh_and_extract_boundaries(
 
     try:
         # Input validation
+        if not msh_file_path.is_absolute():
+            # Convert to absolute path if not already
+            msh_file_path = msh_file_path.resolve()
+            logging.info(f"Resolved MSH file path to: {msh_file_path}")
+
         if not msh_file_path.exists():
             logging.error(f"Mesh file not found: {msh_file_path}")
             return {
@@ -317,21 +388,25 @@ def process_mesh_and_extract_boundaries(
                 "message": "OpenFOAM environment not initialized. OPENFOAM_PATH not found.",
                 "case_output_path": Path(""), "boundary_names": []
             }
+        
+        # 调用改造后的辅助函数，传入初始求解器名称和结束时间
+        _create_minimal_openfoam_case_structure(case_output_path, initial_solver_name, initial_end_time)
 
         os.chdir(case_output_path)
         logging.info(f"Changed current directory to: {case_output_path}")
 
-        command = f'fluentMeshToFoam "{msh_file_path.resolve()}"'
+        # Adding source command for OpenFOAM environment
+        command = f'source {openfoam_path}/etc/bashrc && fluentMeshToFoam "{msh_file_path.resolve()}"'
         logging.info(f"Executing mesh conversion command: {command}")
 
         process = subprocess.run(
             command,
             shell=True,
-            executable="/usr/bin/bash",
+            executable="/usr/bin/bash", # Explicitly use bash for sourcing
             capture_output=True,
             text=True,
             check=False,
-            timeout=300 # Increased timeout for mesh conversion
+            timeout=600 # Increased timeout for mesh conversion
         )
 
         if process.returncode != 0:
@@ -362,7 +437,7 @@ def process_mesh_and_extract_boundaries(
             "boundary_names": boundary_names
         }
     except subprocess.TimeoutExpired:
-        logging.error(f"Mesh conversion timed out after {300} seconds for {msh_file_path}.")
+        logging.error(f"Mesh conversion timed out after {600} seconds for {msh_file_path}.")
         return {
             "status": "failure",
             "message": f"Mesh conversion timed out ({msh_file_path}).",
@@ -381,6 +456,8 @@ def process_mesh_and_extract_boundaries(
             os.chdir(original_cwd)
             logging.info(f"Changed back to original directory: {original_cwd}")
 
+
+---
 
 ### `GenerateOpenFOAMCaseFiles`
 
@@ -408,8 +485,8 @@ def generate_openfoam_case_files(
         llm_boundary_types_json (str): LLM-generated JSON for boundary types (currently unused).
         llm_ic_bc_data_json (str): LLM-generated JSON for initial/boundary condition data (currently unused).
         llm_case_files_content_json (str): LLM-generated JSON string where keys are
-                                            relative file paths (e.g., "system/controlDict")
-                                            and values are the file contents.
+                                           relative file paths (e.g., "system/controlDict")
+                                           and values are the file contents.
 
     Returns:
         GeneratedFilesResult: A dictionary containing the generation status,
@@ -459,6 +536,8 @@ def generate_openfoam_case_files(
             "case_path": case_path
         }
 
+
+---
 
 ### `RunOpenFOAMSimulation`
 
