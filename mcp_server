@@ -145,8 +145,6 @@ runTimeModifiable true;
 
 ## MCP Tools Definition
 
----
-
 ### `ExtractPdfText` (New Tool)
 
 class PdfTextResult(TypedDict):
@@ -246,8 +244,6 @@ def extract_pdf_text(
         }
 
 
----
-
 ### `ExtractSimulationConditions`
 
 class SimulationConditionsResult(TypedDict):
@@ -310,8 +306,6 @@ def extract_simulation_conditions(
             "case_description": "", "solver": "", "turbulence_model": None, "physical_model": None
         }
 
-
----
 
 ### `ProcessMeshAndExtractBoundaries`
 
@@ -457,8 +451,6 @@ def process_mesh_and_extract_boundaries(
             logging.info(f"Changed back to original directory: {original_cwd}")
 
 
----
-
 ### `GenerateOpenFOAMCaseFiles`
 
 class GeneratedFilesResult(TypedDict):
@@ -536,8 +528,6 @@ def generate_openfoam_case_files(
             "case_path": case_path
         }
 
-
----
 
 ### `RunOpenFOAMSimulation`
 
