@@ -479,76 +479,164 @@ def generate_openfoam_case_files(
     mesh_generation_method: Optional[str] = "blockMesh"
 ) -> Dict[str, Any]:
     """
-    根据 LLM 提供的 JSON 数据生成 OpenFOAM 案例文件（constant, system, 0）。
-    此工具处理完整的案例设置，包括边界类型、初始/边界条件以及关键系统和 constant 文件的内容。
+    Generates OpenFOAM case files (constant, system, 0) based on LLM-provided JSON data.
+    This tool handles the full case setup, including boundary types, initial/boundary conditions,
+    and the content of key system and constant files.
 
     Args:
-        case_path (str): OpenFOAM 案例目录的绝对路径。
-                         示例：'/personal/OpenFOAM_Cases/myCase'
-        llm_boundary_types_json (str): 定义网格面边界类型的 JSON 字符串。示例：
+        case_path (str): The absolute path to the desired OpenFOAM case directory.
+                         Example: '/personal/OpenFOAM_Cases/myCase'
+        llm_boundary_types_json (str): A JSON string defining the boundary types
+                                       for mesh patches. Example:
                                        '{"inlet": "patch", "outlet": "patch"}'
-        llm_ic_bc_data_json (str): 定义 U 和 p 等场的初始和边界条件的 JSON 字符串。示例：
+        llm_ic_bc_data_json (str): A JSON string defining initial and boundary conditions
+                                   for fields like U and p. Example:
                                    '{"initial_conditions": {"U": [0,0,0]}, "boundary_conditions": {"inlet": {"type": "fixedValue", "U": [1,0,0]}}}'
-        llm_case_files_content_json (str): 一个 JSON 字符串，其中键是文件路径
-                                           （例如："system/controlDict"），值是这些文件的精确字符串内容。
-                                           示例：'{"system/controlDict": "FoamFile\\n{...}"}'
-        create_mesh (bool): 如果为 True，工具将尝试创建网格（默认：True）。
-        mesh_generation_method (str): 用于网格生成的方法（例如："blockMesh", "snappyHexMesh"）。
-                                      目前仅完全支持“blockMesh”自动生成。
-                                      （默认："blockMesh"）
+        llm_case_files_content_json (str): A JSON string where keys are file paths
+                                           (e.g., "system/controlDict") and values are
+                                           the exact string content for those files.
+                                           Example: '{"system/controlDict": "FoamFile\\n{...}"}'
+        create_mesh (bool): If True, the tool will attempt to create the mesh (default: True).
+        mesh_generation_method (str): The method to use for mesh generation (e.g., "blockMesh", "snappyHexMesh").
+                                      Only "blockMesh" is fully supported for automatic generation currently.
+                                      (default: "blockMesh")
 
     Returns:
-        Dict[str, Any]: 包含状态（"success" 或 "failure"）和消息的字典。
-                        如果成功，则包含 "case_path"。
+        Dict[str, Any]: A dictionary containing the status ("success" or "failure")
+                        and a message. If successful, includes "case_path".
     """
-    logging.info(f"收到请求，生成 OpenFOAM 案例文件在：{case_path}")
+    logging.info(f"Received request to generate OpenFOAM case files at: {case_path}")
 
-    # --- 开始修改部分 ---
-    # 如果存在由于 MCP Inspector 行为导致的前导/尾随三引号，则将其去除
-    # 这专门解决了当输入是 """{...}""" 时出现的“Extra data”错误
+    # --- START OF MODIFICATION ---
+    def extract_pure_json_string(raw_input_str: str) -> str:
+        # 使用正则表达式匹配 JSON 对象或数组，并去除围绕它的 Python 字符串字面量相关内容
+        # pattern = r'^\s*\"*\"*\"*\s*(\{.*\}|\[.*\])\s*\"*\"*\"*\s*$'
+        # 考虑到 MCP Inspector 的行为，最直接的方式是找到第一个 { 并匹配到最后一个 }
+        # 或者找到第一个 [ 并匹配到最后一个 ]
+        
+        # 尝试匹配以 { 或 [ 开头，并以 } 或 ] 结尾的 JSON 结构
+        match = re.search(r'\{.*\}|\[.*\]', raw_input_str, re.DOTALL)
+        if match:
+            # 找到匹配的纯 JSON 字符串
+            return match.group(0)
+        else:
+            # 如果没有找到 JSON 结构，可能是纯文本，或者格式完全不对，直接返回原始字符串（后面json.loads会报错）
+            # 或者抛出更具体的错误
+            raise ValueError("无法从输入字符串中提取有效的 JSON 结构。请确保输入包含一个完整的 JSON 对象或数组。")
+
     try:
-        # 我们需要对所有三个输入都进行此操作，因为它们都作为字符串传递，
-        # 并且当未显式加引号时（input_type=dict），以及当使用 """ 加引号时（Extra data），
-        # 它们都会以相同的方式受到影响。
-        clean_llm_boundary_types_json = llm_boundary_types_json.strip().strip('\"')
-        clean_llm_ic_bc_data_json = llm_ic_bc_data_json.strip().strip('\"')
-        clean_llm_case_files_content_json = llm_case_files_content_json.strip().strip('\"')
+        # 清理并提取纯 JSON 字符串
+        clean_llm_boundary_types_json = extract_pure_json_string(llm_boundary_types_json)
+        clean_llm_ic_bc_data_json = extract_pure_json_string(llm_ic_bc_data_json)
+        clean_llm_case_files_content_json = extract_pure_json_string(llm_case_files_content_json)
 
-        # 现在解析用于文件生成的内容 JSON
+        # 现在解析内容 JSON
         case_files_content = json.loads(clean_llm_case_files_content_json)
-        ic_bc_data = json.loads(clean_llm_ic_bc_data_json) # 这也应该被解析为 JSON
-        boundary_types = json.loads(clean_llm_boundary_types_json) # 还有这个
-    except json.JSONDecodeError as e:
-        return {"status": "failure", "message": f"LLM 案例文件的 JSON 输入格式错误：{e}。请检查输入 JSON 字符串。原始片段：{llm_case_files_content_json[:200]}..."}
+        ic_bc_data = json.loads(clean_llm_ic_bc_data_json)
+        boundary_types = json.loads(clean_llm_boundary_types_json)
+    except (json.JSONDecodeError, ValueError) as e:
+        # 在错误消息中包含导致问题的具体字符串片段
+        return {"status": "failure", "message": f"输入 LLM JSON 格式错误或无法提取：{e}。请检查输入 JSON 字符串。受影响的输入字符串（可能包含多余的引号和换行）：\nBoundary Types:\n{llm_boundary_types_json[:200]}...\nIC/BC Data:\n{llm_ic_bc_data_json[:200]}...\nCase Files Content:\n{llm_case_files_content_json[:200]}..."}
     except Exception as e:
         return {"status": "failure", "message": f"处理 LLM JSON 时发生意外错误：{e}"}
-    # --- 结束修改部分 ---
+    # --- END OF MODIFICATION ---
 
     # 原始逻辑（函数其余部分）
-    # ... (你的 generate_openfoam_case_files 函数的其余部分应该放在这里)
-    # 确保从现在开始使用 `boundary_types`、`ic_bc_data` 和 `case_files_content`，而不是原始的 `llm_*_json` 变量。
-
     case_path_obj = Path(case_path)
-    # ... 函数的其余逻辑，使用 boundary_types, ic_bc_data, case_files_content
-    # (例如，创建目录，根据解析后的 JSON 数据写入文件)
+    
+    # 确保案例路径存在
+    try:
+        case_path_obj.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        return {"status": "failure", "message": f"无法创建案例目录 {case_path}: {e}"}
 
-    # 基于解析内容创建文件的简化示例
+    # 根据解析后的 JSON 内容写入文件
     try:
         for file_path_str, content in case_files_content.items():
             full_file_path = case_path_obj / file_path_str
-            full_file_path.parent.mkdir(parents=True, exist_ok=True)
+            full_file_path.parent.mkdir(parents=True, exist_ok=True) # 确保子目录存在
             with open(full_file_path, "w") as f:
                 f.write(content)
-        
-        # 你还需要根据 `boundary_types` 和 `ic_bc_data` 生成边界和 IC/BC 文件。
-        # 这部分代码需要正确实现。
-        # 例如，对于 U 和 p，你可以从 ic_bc_data 和 boundary_types 读取以构建 0/U 和 0/p 文件。
-        # 这个示例只展示了从 case_files_content 写入任意文件。
+
+        # 示例：根据 boundary_types 创建 constant/polyMesh/boundary 文件
+        # 这是一个简化的示例，你需要根据实际需求构建此文件
+        boundary_file_path = case_path_obj / "constant/polyMesh/boundary"
+        boundary_file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(boundary_file_path, "w") as f:
+            f.write("FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      boundary;\n}\n\n")
+            f.write(f"nFaces {len(boundary_types)};\n\n") # This is a placeholder, actual faces count depends on mesh
+            f.write("boundary\n(\n")
+            for name, type_val in boundary_types.items():
+                f.write(f"    {name}\n    {{\n        type            {type_val};\n        nFaces          0; // Placeholder\n        startFace       0; // Placeholder\n    }}\n")
+            f.write(");\n")
+
+        # 示例：根据 ic_bc_data 创建 0/U 和 0/p 文件
+        # 这也需要更详细的逻辑来构建完整的 OpenFOAM 场文件
+        # For 'U'
+        u_file_path = case_path_obj / "0/U"
+        u_file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(u_file_path, "w") as f:
+            f.write("FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volVectorField;\n    object      U;\n}\n")
+            f.write("dimensions      [0 1 -1 0 0 0 0];\n")
+            initial_u = ic_bc_data["initial_conditions"]["U"]
+            f.write(f"internalField   uniform ({initial_u[0]} {initial_u[1]} {initial_u[2]});\n")
+            f.write("boundaryField\n{\n")
+            for patch_name, bc in ic_bc_data["boundary_conditions"].items():
+                if "U" in bc:
+                    value_str = ""
+                    if isinstance(bc["U"], list):
+                        value_str = f"uniform ({bc['U'][0]} {bc['U'][1]} {bc['U'][2]})"
+                    else:
+                        value_str = bc["U"] # e.g., "zeroGradient"
+                    f.write(f"    {patch_name}\n    {{\n        type            {bc['type']};\n        value           {value_str};\n    }}\n")
+            f.write("}\n")
+
+        # For 'p'
+        p_file_path = case_path_obj / "0/p"
+        p_file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(p_file_path, "w") as f:
+            f.write("FoamFile\n{\n    version     2.0;\n    format      ascii;\n    class       volScalarField;\n    object      p;\n}\n")
+            f.write("dimensions      [0 2 -2 0 0 0 0];\n")
+            initial_p = ic_bc_data["initial_conditions"]["p"]
+            f.write(f"internalField   uniform {initial_p};\n")
+            f.write("boundaryField\n{\n")
+            for patch_name, bc in ic_bc_data["boundary_conditions"].items():
+                if "p" in bc:
+                    value_str = bc["p"] # e.g., 0 or "zeroGradient"
+                    if isinstance(value_str, (int, float)):
+                        value_str = f"uniform {value_str}"
+                    f.write(f"    {patch_name}\n    {{\n        type            {bc['type']};\n        value           {value_str};\n    }}\n")
+            f.write("}\n")
 
     except Exception as e:
-        logging.error(f"创建案例文件时出错：{e}")
-        return {"status": "failure", "message": f"创建案例文件时出错：{e}"}
+        logging.error(f"创建案例文件时出错: {e}")
+        return {"status": "failure", "message": f"创建案例文件时出错: {e}"}
 
+    # 创建网格（如果需要）
+    if create_mesh:
+        if mesh_generation_method == "blockMesh":
+            blockmesh_log_path = case_path_obj / "log.blockMesh"
+            logging.info(f"正在运行 blockMesh 在 {case_path}...")
+            try:
+                # 切换到案例目录并运行 blockMesh
+                subprocess.run(
+                    ["blockMesh"],
+                    cwd=case_path_obj,
+                    check=True,
+                    capture_output=True,
+                    text=True
+                )
+                logging.info(f"blockMesh 成功运行。")
+            except subprocess.CalledProcessError as e:
+                logging.error(f"blockMesh 失败，退出码: {e.returncode}, 错误: {e.stderr}")
+                return {"status": "failure", "message": f"blockMesh 失败，退出码: {e.returncode}, 错误日志:\n{e.stderr}", "log": e.stderr}
+            except Exception as e:
+                logging.error(f"运行 blockMesh 时出错: {e}")
+                return {"status": "failure", "message": f"运行 blockMesh 时出错: {e}"}
+        else:
+            logging.warning(f"不支持的网格生成方法: {mesh_generation_method}. 跳过网格生成。")
+            return {"status": "failure", "message": f"不支持的网格生成方法: {mesh_generation_method}. 请使用 'blockMesh'."}
+    
     logging.info(f"OpenFOAM 案例文件已成功生成在：{case_path}")
     return {"status": "success", "message": "OpenFOAM 案例文件已成功生成。", "case_path": case_path}
 
