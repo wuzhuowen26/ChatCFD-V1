@@ -139,7 +139,7 @@ runTimeModifiable true;
 
 # --- MCP Tools Definition ---
 
----
+
 
 ### `extract_pdf_text`
 
@@ -247,7 +247,7 @@ def extract_pdf_text(
             "extracted_text": ""
         }
 
----
+
 
 ### `parse_simulation_conditions`
 
@@ -326,7 +326,7 @@ def parse_simulation_conditions(
             "numerical_schemes": None, "control_parameters": None
         }
 
----
+
 
 ### `process_mesh_and_extract_boundaries`
 
@@ -462,7 +462,7 @@ def process_mesh_and_extract_boundaries(
             os.chdir(original_cwd)
             logging.info(f"Changed back to original directory: {original_cwd}")
 
----
+
 
 ### `retrieve_of_case_template`
 
@@ -651,7 +651,7 @@ def retrieve_of_case_template(
         "all_filtered_alternatives": file_alternative
     }
 
----
+
 
 ### `manage_openfoam_case_files` (整合工具)
 
@@ -800,7 +800,7 @@ def manage_openfoam_case_files(
             "case_path": case_path, "modified_files_count": 0
         }
 
----
+
 
 ### `run_openfoam_simulation`
 
@@ -918,7 +918,7 @@ def run_openfoam_simulation(
             os.chdir(original_cwd)
             logging.info(f"Changed back to original directory: {original_cwd}")
 
----
+
 
 ### `get_openfoam_case_file_structure`
 
@@ -979,7 +979,7 @@ def get_openfoam_case_file_structure(
         "file_structure": file_structure
     }
 
----
+
 
 ### `perform_web_search`
 
