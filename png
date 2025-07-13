@@ -145,7 +145,7 @@ def visualize_openfoam_velocity(case_path: Path, output_image_path: Path, time_s
     plotter = pv.Plotter(off_screen=True) 
     
     plotter.add_mesh(mesh, scalars="VelocityMagnitude", cmap="viridis", show_scalar_bar=True,
-                     scalar_bar_args={'title': 'Velocity Magnitude', 'font_size': 16})
+                     scalar_bar_args={'title': 'Velocity Magnitude'}) # 移除 'font_size': 16
     
     plotter.view_xy() 
     plotter.camera.zoom(1.2) 
