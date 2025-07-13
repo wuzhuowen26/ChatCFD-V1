@@ -4,7 +4,7 @@ import pyvista as pv
 import numpy as np
 from pathlib import Path
 import sys
-import re # 导入正则表达式模块
+import re
 
 def visualize_openfoam_velocity(case_path: Path, output_image_path: Path, time_step: str = "latest"):
     """
@@ -46,100 +46,111 @@ def visualize_openfoam_velocity(case_path: Path, output_image_path: Path, time_s
         print("错误: 'foamToVTK' 命令未找到。请确保 OpenFOAM 环境已正确源化 (sourced)。")
         sys.exit(1)
 
-    # 2. 确定 VTK 文件的路径
+    # 2. 确定 VTK 文件的路径 (修改这部分逻辑)
     vtk_output_dir = case_path / "VTK"
     case_name = case_path.name # 获取案例名称
 
-    actual_time_step_dir = None
+    # PyVista可以直接读取 .vtm 或 .vtm.series 文件
+    # 查找最新时间步的 .vtm 文件
+    target_vtk_file = None
     if time_step == "latest":
-        # 寻找符合 <案例名称>_<时间步> 或 <时间步> 格式的目录
-        time_dirs_found = []
-        for d in vtk_output_dir.iterdir():
-            if d.is_dir():
-                # 检查 <case_name>_<time_value> 格式 (例如: naca0012_case_1)
-                match_case_time = re.match(rf"^{re.escape(case_name)}_(\d+\.?\d*)$", d.name)
-                # 检查纯 <time_value> 格式 (例如: 1)
-                match_time_only = re.match(r"^(\d+\.?\d*)$", d.name)
+        # 尝试查找 <case_name>_<time_value>.vtm 格式
+        # 或者 <case_name>.vtm.series (如果foamToVTK只生成了这个)
+        
+        # 寻找所有可能的 .vtm 文件，按时间步排序
+        vtm_files_found = []
+        for f in vtk_output_dir.iterdir():
+            if f.is_file() and f.suffix == '.vtm':
+                # 匹配 <case_name>_<time_value>.vtm
+                match_case_time_vtm = re.match(rf"^{re.escape(case_name)}_(\d+\.?\d*)\.vtm$", f.name)
+                # 匹配 <case_name>.vtm.series
+                match_series_vtm = re.match(rf"^{re.escape(case_name)}\.vtm\.series$", f.name)
 
-                if match_case_time:
-                    time_dirs_found.append((float(match_case_time.group(1)), d))
-                elif match_time_only:
-                    time_dirs_found.append((float(match_time_only.group(1)), d))
+                if match_case_time_vtm:
+                    vtm_files_found.append((float(match_case_time_vtm.group(1)), f))
+                elif match_series_vtm:
+                    # 如果有 .vtm.series，PyVista 可以直接处理它来获取所有时间步，但我们通常想要最新的那个 .vtm
+                    # 如果只生成了 .vtm.series，且没有单时间步的 .vtm，我们需要特殊处理。
+                    # 通常 foamToVTK -latestTime 会生成 <case_name>_<latest_time>.vtm
+                    pass # 不直接加入，因为我们优先找单时间步的vtm
         
-        if time_dirs_found:
-            # 按时间值排序 (降序) 以获取最新的时间步
-            time_dirs_found.sort(key=lambda x: x[0], reverse=True)
-            actual_time_step_dir = time_dirs_found[0][1]
-            print(f"已找到最新的 VTK 时间步目录: {actual_time_step_dir.name}")
+        if vtm_files_found:
+            vtm_files_found.sort(key=lambda x: x[0], reverse=True) # 找到最新时间的 .vtm
+            target_vtk_file = vtm_files_found[0][1]
+            print(f"已找到最新的 VTK 文件: {target_vtk_file.name}")
         else:
-            print(f"错误: 在 '{vtk_output_dir}' 中未找到任何符合预期的 VTK 时间步目录。")
-            print(f"预期目录名格式: '{case_name}_<时间步>' 或 '<时间步>'。")
-            sys.exit(1)
+            # 如果没有找到 <case_name>_<time_value>.vtm，尝试 <case_name>.vtm.series
+            series_file = vtk_output_dir / f"{case_name}.vtm.series"
+            if series_file.is_file():
+                target_vtk_file = series_file
+                print(f"已找到 VTK 系列文件: {target_vtk_file.name}")
+            else:
+                print(f"错误: 在 '{vtk_output_dir}' 中未找到任何 VTK 文件 (.vtm 或 .vtm.series)。")
+                sys.exit(1)
     else:
-        # 对于指定的时间步，尝试 <案例名称>_<时间步> 格式
-        possible_dir_name = f"{case_name}_{time_step}"
-        actual_time_step_dir = vtk_output_dir / possible_dir_name
-        
-        if not actual_time_step_dir.is_dir():
-            # 如果未找到，再尝试纯数字时间步格式
-            actual_time_step_dir = vtk_output_dir / time_step
-            if not actual_time_step_dir.is_dir():
-                print(f"错误: 指定时间步 '{time_step}' 的 VTK 目录 '{vtk_output_dir / possible_dir_name}' 或 '{vtk_output_dir / time_step}' 不存在。")
+        # 如果指定了具体时间步，直接构建文件名 <case_name>_<time_step>.vtm
+        target_vtk_file = vtk_output_dir / f"{case_name}_{time_step}.vtm"
+        if not target_vtk_file.is_file():
+            # 兼容只生成数字时间步的 .vtm 格式 (虽然 foamToVTK for OpenFOAM 2406 较少见)
+            target_vtk_file = vtk_output_dir / f"{time_step}.vtm"
+            if not target_vtk_file.is_file():
+                print(f"错误: 指定时间步 '{time_step}' 的 VTK 文件 '{target_vtk_file}' 不存在。")
                 sys.exit(1)
 
-    # 寻找 VTK 文件 (通常是 .vtu 或 .vtk)
-    # foamToVTK 通常会为内部网格输出 .vtu 文件
-    vtk_file_pattern = "*.vtu" 
-    vtk_files = list(actual_time_step_dir.glob(vtk_file_pattern))
-    
-    if not vtk_files:
-        # 如果没有找到 .vtu，再尝试 .vtk (较少用于 foamToVTK 的内部网格数据)
-        vtk_file_pattern = "*.vtk" 
-        vtk_files = list(actual_time_step_dir.glob(vtk_file_pattern))
-
-    if not vtk_files:
-        print(f"错误: 在 '{actual_time_step_dir}' 中未找到任何 VTK 文件 ({vtk_file_pattern})。")
-        sys.exit(1)
-
-    # 通常只有一个 VTK 文件代表整个网格
-    mesh_file = vtk_files[0]
-    print(f"正在加载 VTK 文件: {mesh_file}")
+    print(f"正在加载 VTK 文件: {target_vtk_file}")
 
     # 3. 使用 PyVista 加载数据
     try:
-        mesh = pv.read(mesh_file)
+        # PyVista 可以直接读取 .vtm (MultiBlock) 或 .vtm.series (Time Series)
+        # 如果是 MultiBlock，它会加载所有块。如果是 Time Series，它会创建一个时间序列数据集。
+        # 我们这里关注最新时间步的数据，所以直接加载 .vtm 文件
+        full_data_set = pv.read(target_vtk_file)
     except Exception as e:
         print(f"错误: 使用 PyVista 读取 VTK 文件失败: {e}")
+        print("请确保 PyVista 版本兼容，并且 VTK 文件未损坏。")
+        sys.exit(1)
+
+    # 从 MultiBlock 数据集中获取实际的网格数据
+    # 通常内部场在第一个块或者命名为 'internal' 的块中
+    if isinstance(full_data_set, pv.MultiBlock):
+        # 尝试获取包含内部网格的块。通常是第一个或者名字为 'internal'
+        mesh = None
+        for block in full_data_set:
+            if 'internal' in str(block).lower() or block.n_points > 0: # 找到非空且可能代表内部网格的块
+                mesh = block
+                break
+        if mesh is None:
+            print("错误: 在 MultiBlock 数据集中未找到有效的内部网格数据。")
+            sys.exit(1)
+    elif isinstance(full_data_set, pv.DataSet): # 如果直接是 DataSet (如 .vtu)
+        mesh = full_data_set
+    else:
+        print(f"错误: PyVista 加载了未知类型的数据集: {type(full_data_set)}")
         sys.exit(1)
 
     # 4. 提取速度 U 场并计算速度大小
     if "U" not in mesh.point_data:
         print(f"错误: 在 VTK 数据中未找到 'U' 场。请确保 foamToVTK 导出了速度 U。")
-        print(f"可用数据场: {list(mesh.point_data.keys())}") # 打印可用数据场以供调试
+        print(f"可用数据场: {list(mesh.point_data.keys())}")
         sys.exit(1)
 
     velocity_u = mesh.point_data["U"]
-    # 速度 U 是一个向量场 (Ux, Uy, Uz)，计算其大小
     velocity_magnitude = np.linalg.norm(velocity_u, axis=1)
-    mesh["VelocityMagnitude"] = velocity_magnitude # 将计算结果添加到网格数据中
+    mesh["VelocityMagnitude"] = velocity_magnitude
 
     print("已计算速度大小。")
 
     # 5. 可视化并保存图片
     print("正在生成可视化图片...")
-    plotter = pv.Plotter(off_screen=True) # off_screen=True 允许在没有 GUI 的服务器上运行
+    plotter = pv.Plotter(off_screen=True) 
     
-    # 添加网格并使用 VelocityMagnitude 作为标量进行着色
     plotter.add_mesh(mesh, scalars="VelocityMagnitude", cmap="viridis", show_scalar_bar=True,
                      scalar_bar_args={'title': 'Velocity Magnitude', 'font_size': 16})
     
-    # 尝试设置为 XY 平面视图，这对于 2D 模拟很常见
     plotter.view_xy() 
-    plotter.camera.zoom(1.2) # 稍微放大以更好地查看
+    plotter.camera.zoom(1.2) 
 
-    # 确保输出目录存在
     output_image_path.parent.mkdir(parents=True, exist_ok=True) 
-    # 保存图片，scale=2 提高分辨率
     plotter.screenshot(output_image_path, transparent_background=False, scale=2) 
     print(f"图片已成功保存到: {output_image_path}")
 
@@ -147,18 +158,12 @@ def visualize_openfoam_velocity(case_path: Path, output_image_path: Path, time_s
 
 if __name__ == "__main__":
     # --- 示例用法 ---
-    # 请根据你的实际情况修改以下路径！
+    openfoam_case_root = Path("/personal/naca0012_case") 
 
-    # 你的 OpenFOAM 案例的根路径
-    # 根据你提供的报错信息，案例路径是 /personal/naca0012_case
-    openfoam_case_root = Path("/personal/naca0012_case") # <-- 确认这是你的案例根路径
-
-    # 输出图片的路径
     output_image_dir = Path("./visualization_output")
-    output_image_dir.mkdir(exist_ok=True) # 确保输出目录存在
-    output_image_file = output_image_dir / "velocity_magnitude_plot.png" # <--- 输出图片文件名
+    output_image_dir.mkdir(exist_ok=True) 
+    output_image_file = output_image_dir / "velocity_magnitude_plot.png" 
 
-    # 调用可视化函数，time_step="latest" 应该能找到 naca0012_case_1
     visualize_openfoam_velocity(openfoam_case_root, output_image_file, time_step="latest")
 
     print("\n可视化脚本运行完毕。")
