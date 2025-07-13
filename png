@@ -1,0 +1,147 @@
+import os
+import subprocess
+import pyvista as pv
+import numpy as np
+from pathlib import Path
+import sys
+
+def visualize_openfoam_velocity(case_path: Path, output_image_path: Path, time_step: str = "latest"):
+    """
+    自动调用 OpenFOAM 的 foamToVTK 工具，并将指定 OpenFOAM 案例的速度 U 场可视化为图片。
+
+    Args:
+        case_path (Path): OpenFOAM 案例的路径 (例如 Path("/path/to/your/case/myCylinderFlow")).
+        output_image_path (Path): 输出图片文件的完整路径 (例如 Path("./velocity_magnitude.png")).
+        time_step (str): 要可视化的时间步。可以是 "latest" (默认) 或具体的数字时间步字符串 (例如 "1000")。
+                         如果指定 "latest"，脚本会尝试找到最新的时间步。
+    """
+    if not case_path.is_dir():
+        print(f"错误: 案例路径 '{case_path}' 不存在或不是一个目录。")
+        sys.exit(1)
+
+    print(f"正在处理案例: {case_path}")
+    print(f"目标输出图片: {output_image_path}")
+
+    # 1. 运行 foamToVTK 将 OpenFOAM 结果转换为 VTK 格式
+    print("正在运行 foamToVTK...")
+    try:
+        # -latestTime 选项可以获取最新的时间步
+        # -fields U 选项指定只导出 U 场，可以减少转换时间
+        # -allFields 如果需要所有场，可以改为 -allFields
+        command = ["foamToVTK", "-latestTime" if time_step == "latest" else f"-time {time_step}"]
+        
+        # 检查是否在 Windows 上，如果是，可能需要 shell=True
+        # 在 Linux/WSL 上通常不需要
+        result = subprocess.run(command, cwd=case_path, capture_output=True, text=True, check=True)
+        print("foamToVTK 输出:")
+        print(result.stdout)
+        if result.stderr:
+            print("foamToVTK 错误输出:")
+            print(result.stderr)
+
+    except subprocess.CalledProcessError as e:
+        print(f"错误: foamToVTK 运行失败。请确保 OpenFOAM 环境已正确配置且案例路径正确。")
+        print(f"命令: {' '.join(e.cmd)}")
+        print(f"返回码: {e.returncode}")
+        print(f"标准输出:\n{e.stdout}")
+        print(f"标准错误:\n{e.stderr}")
+        sys.exit(1)
+    except FileNotFoundError:
+        print("错误: 'foamToVTK' 命令未找到。请确保 OpenFOAM 环境已正确源化 (sourced)。")
+        sys.exit(1)
+
+    # 2. 确定 VTK 文件的路径
+    vtk_output_dir = case_path / "VTK"
+
+    # 尝试找到最新的时间步目录
+    actual_time_step_dir = None
+    if time_step == "latest":
+        time_dirs = sorted([d for d in vtk_output_dir.iterdir() if d.is_dir() and d.name.replace('.', '', 1).isdigit()],
+                           key=lambda p: float(p.name), reverse=True)
+        if time_dirs:
+            actual_time_step_dir = time_dirs[0]
+            print(f"已找到最新的 VTK 时间步目录: {actual_time_step_dir.name}")
+        else:
+            print(f"错误: 在 '{vtk_output_dir}' 中未找到任何时间步目录。请检查 foamToVTK 是否生成了文件。")
+            sys.exit(1)
+    else:
+        actual_time_step_dir = vtk_output_dir / time_step
+        if not actual_time_step_dir.is_dir():
+            print(f"错误: 指定时间步 '{time_step}' 的 VTK 目录 '{actual_time_step_dir}' 不存在。")
+            sys.exit(1)
+
+    # 寻找 VTK 文件 (通常是 .vtu 或 .vtk)
+    vtk_file_pattern = "*.vtu" # 对于非结构化网格通常是 .vtu
+    vtk_files = list(actual_time_step_dir.glob(vtk_file_pattern))
+    if not vtk_files:
+        vtk_file_pattern = "*.vtk" # 对于结构化网格或其他情况可能是 .vtk
+        vtk_files = list(actual_time_step_dir.glob(vtk_file_pattern))
+
+    if not vtk_files:
+        print(f"错误: 在 '{actual_time_step_dir}' 中未找到任何 VTK 文件 ({vtk_file_pattern})。")
+        sys.exit(1)
+
+    # 通常只有一个 VTK 文件代表整个网格
+    mesh_file = vtk_files[0]
+    print(f"正在加载 VTK 文件: {mesh_file}")
+
+    # 3. 使用 PyVista 加载数据
+    try:
+        mesh = pv.read(mesh_file)
+    except Exception as e:
+        print(f"错误: 使用 PyVista 读取 VTK 文件失败: {e}")
+        sys.exit(1)
+
+    # 4. 提取速度 U 场并计算速度大小
+    if "U" not in mesh.point_data:
+        print(f"错误: 在 VTK 数据中未找到 'U' 场。请确保 foamToVTK 导出了速度 U。")
+        sys.exit(1)
+
+    velocity_u = mesh.point_data["U"]
+    # 速度 U 是一个向量场 (Ux, Uy, Uz)，计算其大小
+    velocity_magnitude = np.linalg.norm(velocity_u, axis=1)
+    mesh["VelocityMagnitude"] = velocity_magnitude # 将计算结果添加到网格数据中
+
+    print("已计算速度大小。")
+
+    # 5. 可视化并保存图片
+    print("正在生成可视化图片...")
+    plotter = pv.Plotter(off_screen=True) # off_screen=True 可以在没有 GUI 的服务器上运行
+    
+    # 自动调整相机视角以适应数据
+    plotter.add_mesh(mesh, scalars="VelocityMagnitude", cmap="viridis", show_scalar_bar=True,
+                     scalar_bar_args={'title': 'Velocity Magnitude'})
+    
+    # 如果是 2D 模拟，尝试设置为 XY 平面视图
+    # 这需要根据你的案例实际的网格方向来调整
+    # 对于圆柱绕流，通常是在 XY 平面
+    plotter.view_xy() 
+    plotter.camera.zoom(1.2) # 稍微放大以更好地查看
+
+    # 保存图片
+    output_image_path.parent.mkdir(parents=True, exist_ok=True) # 确保输出目录存在
+    plotter.screenshot(output_image_path, transparent_background=False, scale=2) # scale=2 提高分辨率
+    print(f"图片已成功保存到: {output_image_path}")
+
+    plotter.close()
+
+if __name__ == "__main__":
+    # --- 示例用法 ---
+    # 请根据你的实际情况修改以下路径！
+
+    # 你的 OpenFOAM 案例的根路径
+    # 假设你的案例在 Bohrium 上的路径是 /personal/your_username/myCylinderFlow
+    # 或者如果你在本地测试，是你的本地路径
+    openfoam_case_root = Path("/personal/naca0012_case") # <--- 修改为你的案例路径
+
+    # 输出图片的路径
+    # 脚本会在这个路径创建图片文件
+    output_image_dir = Path("./visualization_output")
+    output_image_dir.mkdir(exist_ok=True) # 确保输出目录存在
+    output_image_file = output_image_dir / "velocity_magnitude_plot.png" # <--- 输出图片文件名
+
+    # 调用可视化函数
+    visualize_openfoam_velocity(openfoam_case_root, output_image_file, time_step="latest")
+
+    print("\n可视化脚本运行完毕。")
+    print(f"请检查 '{output_image_file}' 以查看结果。")
