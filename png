@@ -1,21 +1,25 @@
-import os
-import subprocess
-import pyvista as pv
-import numpy as np
-from pathlib import Path
-import sys
-import re
+# THIS SCRIPT IS INTENDED TO BE RUN WITH pvpython, NOT REGULAR PYTHON.
+# Example: pvpython visualize_openfoam_paraview.py /path/to/your/case /path/to/output_image.png latest
 
-def visualize_openfoam_velocity(case_path: Path, output_image_path: Path, time_step: str = "latest"):
+import sys
+from pathlib import Path
+
+# Import ParaView modules
+from paraview.simple import *
+
+def visualize_openfoam_velocity_paraview(case_path_str: str, output_image_path_str: str, time_step: str = "latest"):
     """
-    自动调用 OpenFOAM 的 foamToVTK 工具，并将指定 OpenFOAM 案例的速度 U 场可视化为图片。
+    使用 ParaView (pvpython) 自动可视化 OpenFOAM 案例的速度 U 场并保存为图片。
 
     Args:
-        case_path (Path): OpenFOAM 案例的路径 (例如 Path("/path/to/your/case/myCylinderFlow")).
-        output_image_path (Path): 输出图片文件的完整路径 (例如 Path("./velocity_magnitude.png")).
+        case_path_str (str): OpenFOAM 案例的路径字符串 (例如 "/path/to/your/case/myCylinderFlow").
+        output_image_path_str (str): 输出图片文件的完整路径字符串 (例如 "./velocity_magnitude.png").
         time_step (str): 要可视化的时间步。可以是 "latest" (默认) 或具体的数字时间步字符串 (例如 "1000")。
-                         如果指定 "latest"，脚本会尝试找到最新的时间步。
+                         ParaView 会自动处理时间步，通常无需显式指定。
     """
+    case_path = Path(case_path_str)
+    output_image_path = Path(output_image_path_str)
+
     if not case_path.is_dir():
         print(f"错误: 案例路径 '{case_path}' 不存在或不是一个目录。")
         sys.exit(1)
@@ -23,148 +27,95 @@ def visualize_openfoam_velocity(case_path: Path, output_image_path: Path, time_s
     print(f"正在处理案例: {case_path}")
     print(f"目标输出图片: {output_image_path}")
 
-    # 1. 运行 foamToVTK 将 OpenFOAM 结果转换为 VTK 格式
-    print("正在运行 foamToVTK...")
-    try:
-        command = ["foamToVTK", "-latestTime" if time_step == "latest" else f"-time {time_step}"]
-        
-        result = subprocess.run(command, cwd=case_path, capture_output=True, text=True, check=True)
-        print("foamToVTK 输出:")
-        print(result.stdout)
-        if result.stderr:
-            print("foamToVTK 错误输出:")
-            print(result.stderr)
-
-    except subprocess.CalledProcessError as e:
-        print(f"错误: foamToVTK 运行失败。请确保 OpenFOAM 环境已正确配置且案例路径正确。")
-        print(f"命令: {' '.join(e.cmd)}")
-        print(f"返回码: {e.returncode}")
-        print(f"标准输出:\n{e.stdout}")
-        print(f"标准错误:\n{e.stderr}")
-        sys.exit(1)
-    except FileNotFoundError:
-        print("错误: 'foamToVTK' 命令未找到。请确保 OpenFOAM 环境已正确源化 (sourced)。")
-        sys.exit(1)
-
-    # 2. 确定 VTK 文件的路径 (修改这部分逻辑)
-    vtk_output_dir = case_path / "VTK"
-    case_name = case_path.name # 获取案例名称
-
-    # PyVista可以直接读取 .vtm 或 .vtm.series 文件
-    # 查找最新时间步的 .vtm 文件
-    target_vtk_file = None
-    if time_step == "latest":
-        # 尝试查找 <case_name>_<time_value>.vtm 格式
-        # 或者 <case_name>.vtm.series (如果foamToVTK只生成了这个)
-        
-        # 寻找所有可能的 .vtm 文件，按时间步排序
-        vtm_files_found = []
-        for f in vtk_output_dir.iterdir():
-            if f.is_file() and f.suffix == '.vtm':
-                # 匹配 <case_name>_<time_value>.vtm
-                match_case_time_vtm = re.match(rf"^{re.escape(case_name)}_(\d+\.?\d*)\.vtm$", f.name)
-                # 匹配 <case_name>.vtm.series
-                match_series_vtm = re.match(rf"^{re.escape(case_name)}\.vtm\.series$", f.name)
-
-                if match_case_time_vtm:
-                    vtm_files_found.append((float(match_case_time_vtm.group(1)), f))
-                elif match_series_vtm:
-                    # 如果有 .vtm.series，PyVista 可以直接处理它来获取所有时间步，但我们通常想要最新的那个 .vtm
-                    # 如果只生成了 .vtm.series，且没有单时间步的 .vtm，我们需要特殊处理。
-                    # 通常 foamToVTK -latestTime 会生成 <case_name>_<latest_time>.vtm
-                    pass # 不直接加入，因为我们优先找单时间步的vtm
-        
-        if vtm_files_found:
-            vtm_files_found.sort(key=lambda x: x[0], reverse=True) # 找到最新时间的 .vtm
-            target_vtk_file = vtm_files_found[0][1]
-            print(f"已找到最新的 VTK 文件: {target_vtk_file.name}")
-        else:
-            # 如果没有找到 <case_name>_<time_value>.vtm，尝试 <case_name>.vtm.series
-            series_file = vtk_output_dir / f"{case_name}.vtm.series"
-            if series_file.is_file():
-                target_vtk_file = series_file
-                print(f"已找到 VTK 系列文件: {target_vtk_file.name}")
-            else:
-                print(f"错误: 在 '{vtk_output_dir}' 中未找到任何 VTK 文件 (.vtm 或 .vtm.series)。")
-                sys.exit(1)
-    else:
-        # 如果指定了具体时间步，直接构建文件名 <case_name>_<time_step>.vtm
-        target_vtk_file = vtk_output_dir / f"{case_name}_{time_step}.vtm"
-        if not target_vtk_file.is_file():
-            # 兼容只生成数字时间步的 .vtm 格式 (虽然 foamToVTK for OpenFOAM 2406 较少见)
-            target_vtk_file = vtk_output_dir / f"{time_step}.vtm"
-            if not target_vtk_file.is_file():
-                print(f"错误: 指定时间步 '{time_step}' 的 VTK 文件 '{target_vtk_file}' 不存在。")
-                sys.exit(1)
-
-    print(f"正在加载 VTK 文件: {target_vtk_file}")
-
-    # 3. 使用 PyVista 加载数据
-    try:
-        # PyVista 可以直接读取 .vtm (MultiBlock) 或 .vtm.series (Time Series)
-        # 如果是 MultiBlock，它会加载所有块。如果是 Time Series，它会创建一个时间序列数据集。
-        # 我们这里关注最新时间步的数据，所以直接加载 .vtm 文件
-        full_data_set = pv.read(target_vtk_file)
-    except Exception as e:
-        print(f"错误: 使用 PyVista 读取 VTK 文件失败: {e}")
-        print("请确保 PyVista 版本兼容，并且 VTK 文件未损坏。")
-        sys.exit(1)
-
-    # 从 MultiBlock 数据集中获取实际的网格数据
-    # 通常内部场在第一个块或者命名为 'internal' 的块中
-    if isinstance(full_data_set, pv.MultiBlock):
-        # 尝试获取包含内部网格的块。通常是第一个或者名字为 'internal'
-        mesh = None
-        for block in full_data_set:
-            if 'internal' in str(block).lower() or block.n_points > 0: # 找到非空且可能代表内部网格的块
-                mesh = block
-                break
-        if mesh is None:
-            print("错误: 在 MultiBlock 数据集中未找到有效的内部网格数据。")
-            sys.exit(1)
-    elif isinstance(full_data_set, pv.DataSet): # 如果直接是 DataSet (如 .vtu)
-        mesh = full_data_set
-    else:
-        print(f"错误: PyVista 加载了未知类型的数据集: {type(full_data_set)}")
-        sys.exit(1)
-
-    # 4. 提取速度 U 场并计算速度大小
-    if "U" not in mesh.point_data:
-        print(f"错误: 在 VTK 数据中未找到 'U' 场。请确保 foamToVTK 导出了速度 U。")
-        print(f"可用数据场: {list(mesh.point_data.keys())}")
-        sys.exit(1)
-
-    velocity_u = mesh.point_data["U"]
-    velocity_magnitude = np.linalg.norm(velocity_u, axis=1)
-    mesh["VelocityMagnitude"] = velocity_magnitude
-
-    print("已计算速度大小。")
-
-    # 5. 可视化并保存图片
-    print("正在生成可视化图片...")
-    plotter = pv.Plotter(off_screen=True) 
+    # 1. 打开 OpenFOAM 案例
+    # ParaView 可以直接读取 OpenFOAM 案例，不需要 foamToVTK
+    # 根据 OpenFOAM 案例的路径创建一个阅读器。
+    # 对于较新的 OpenFOAM 版本（>v1906），可以使用 OpenFOAMReader
+    # 对于旧版本或特定设置，可能需要 OpenFOAMReaderV2。通常 OpenFOAMReader 即可。
+    reader = OpenFOAMReader(FileName=str(case_path))
     
-    plotter.add_mesh(mesh, scalars="VelocityMagnitude", cmap="viridis", show_scalar_bar=True,
-                     scalar_bar_args={'title': 'Velocity Magnitude'}) # 移除 'font_size': 16
+    # 获取所有时间步并选择最新或指定的时间步
+    # 如果 time_step="latest"，ParaViewReader 会自动加载最新时间
+    # 如果需要指定时间，可以在这里选择
+    # reader.UpdatePipeline() # 确保读取器更新
+    # available_times = reader.TimestepValues
+    # if time_step != "latest" and time_step in [str(t) for t in available_times]:
+    #     view.ViewTime = float(time_step)
     
-    plotter.view_xy() 
-    plotter.camera.zoom(1.2) 
+    # 2. 创建渲染视图
+    renderView1 = CreateRenderView()
+    renderView1.ViewSize = [1280, 720] # 设置图像分辨率
+    renderView1.CameraPosition = [0, 0, 10] # 初始相机位置，Z轴向前看
+    renderView1.CameraFocalPoint = [0, 0, 0] # 焦点
+    renderView1.CameraViewUp = [0, 1, 0] # 向上方向
 
-    output_image_path.parent.mkdir(parents=True, exist_ok=True) 
-    plotter.screenshot(output_image_path, transparent_background=False, scale=2) 
+    # 3. 显示数据
+    # 将 reader 的数据关联到渲染视图
+    display = Show(reader, renderView1)
+
+    # 4. 计算速度大小 (如果需要)
+    # 假设 'U' 是速度向量场 (Ux, Uy, Uz)
+    # 使用 'Calculator' 过滤器计算速度大小
+    # 如果 U 是标量，则不需要此步骤，直接显示 U
+    
+    # ParaView的Calculator过滤器中，'mag(U)' 直接计算向量 U 的大小
+    calculator = Calculator(Input=reader)
+    calculator.ResultArrayName = 'VelocityMagnitude' # 新数组的名称
+    calculator.Function = 'mag(U)' # 计算 U 的大小
+    
+    # 移除原始显示，显示计算器结果
+    Hide(reader, renderView1) # 隐藏原始数据
+    display_calc = Show(calculator, renderView1) # 显示计算器输出
+
+    # 5. 设置颜色映射和标量条
+    # 设置标量映射的范围和颜色图
+    # 根据实际数据调整范围，这里使用自动范围
+    display_calc.ColorArrayName = ['POINTS', 'VelocityMagnitude']
+    display_calc.LookupTable = Get
+    display_calc.LookupTable = GetColorTransferFunction('VelocityMagnitude')
+    display_calc.RescaleTransferFunctionToDataRange(True, False) # 自动调整颜色映射范围
+    
+    # 确保标量条可见
+    display_calc.SetScalarBarVisibility(renderView1, True)
+    scalarBar = GetScalarBar(display_calc, renderView1)
+    scalarBar.Title = 'Velocity Magnitude'
+    scalarBar.ComponentTitle = '' # 清空分量标题
+    
+    # 6. 设置相机视图 (2D 案例常见)
+    # 对于 2D 案例，通常在 XY 平面。ParaView 默认视图可能需要调整
+    renderView1.CameraViewUp = [0.0, 1.0, 0.0]
+    renderView1.CameraPosition = [0.0, 0.0, 10.0] # 从Z轴正方向看
+    renderView1.CameraFocalPoint = [0.0, 0.0, 0.0] # 焦点在原点
+    renderView1.ResetCamera() # 重置相机以适应数据
+
+    # 7. 保存图片
+    output_image_path.parent.mkdir(parents=True, exist_ok=True) # 确保输出目录存在
+    SaveScreenshot(str(output_image_path), renderView1, ImageResolution=[1280, 720])
+
     print(f"图片已成功保存到: {output_image_path}")
 
-    plotter.close()
+    # 清理 ParaView 状态，避免在连续脚本运行时出现问题
+    Delete(renderView1)
+    del renderView1
+    Delete(reader)
+    del reader
+    Delete(calculator)
+    del calculator
 
 if __name__ == "__main__":
     # --- 示例用法 ---
-    openfoam_case_root = Path("/personal/naca0012_case") 
+    # 请根据你的实际情况修改以下路径！
 
+    # OpenFOAM 案例的根路径
+    openfoam_case_root = Path("/personal/naca0012_case") # <--- 修改为你的案例路径
+
+    # 输出图片的路径
     output_image_dir = Path("./visualization_output")
     output_image_dir.mkdir(exist_ok=True) 
-    output_image_file = output_image_dir / "velocity_magnitude_plot.png" 
+    output_image_file = output_image_dir / "velocity_magnitude_paraview.png" # <--- 输出图片文件名
 
-    visualize_openfoam_velocity(openfoam_case_root, output_image_file, time_step="latest")
+    # 直接调用可视化函数
+    visualize_openfoam_velocity_paraview(str(openfoam_case_root), str(output_image_file), time_step="latest")
 
     print("\n可视化脚本运行完毕。")
     print(f"请检查 '{output_image_file}' 以查看结果。")
