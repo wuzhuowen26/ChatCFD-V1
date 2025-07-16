@@ -6,10 +6,18 @@ import shutil
 import sys
 import json
 from pathlib import Path
-from typing import TypedDict, Optional, List, Dict, Any, Literal
+from typing import TypedDict, Optional, List, Dict, Any, Literal, Union
 
 # Import pdfplumber for PDF text extraction
 import pdfplumber
+
+# Ensure PyVista and NumPy are imported for post-processing
+try:
+    import pyvista as pv
+    import numpy as np
+except ImportError:
+    logging.error("ERROR: Missing essential Python libraries (pyvista, numpy). Please install them using 'pip install pyvista numpy'")
+    sys.exit(1) # Critical dependency, exit if not found
 
 # Using FastMCP as specified by the user
 from mcp.server.fastmcp import FastMCP
@@ -19,6 +27,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # Initialize the FastMCP server
 mcp = FastMCP("OpenFOAMCFDSimulator", host="0.0.0.0", port=50001)
+
 
 # --- Helper Functions ---
 
@@ -45,7 +54,7 @@ def _clean_text_for_pdf_extraction(text: str, page_number: int) -> str:
 
     # Stage 4: Compress excessive whitespace
     text = re.sub(r'\n{3,}', '\n\n', text)  # Multiple newlines compressed to two
-    text = re.sub(r'[ \t]{2,}', ' ', text)    # Multiple spaces/tabs compressed to one
+    text = re.sub(r'[ \t]{2,}', ' ', text)  # Multiple spaces/tabs compressed to one
 
     # Stage 5: Filter out very short lines (often chart labels or noise)
     lines = [line.strip() for line in text.split('\n') if len(line.strip()) > 3]
@@ -77,7 +86,7 @@ def _extract_boundary_names_from_polyMesh(case_path: Path) -> List[str]:
             # 查找以非数字开头，后面可以跟数字、字母、下划线、短横线的单词
             # 后面紧跟着一个 '{'，并且 'type' 关键字在同一个块内
             found_patches = re.findall(r'^\s*([a-zA-Z_][a-zA-Z0-9_-]*)\s*\{\s*type\s+\w+;', content, re.MULTILINE)
-            
+
             # 过滤掉 OpenFOAM 默认的内部或辅助补丁
             boundary_names = [name for name in found_patches if name not in ["defaultFaces", "defaultPatches"]]
             names = boundary_names
@@ -86,6 +95,7 @@ def _extract_boundary_names_from_polyMesh(case_path: Path) -> List[str]:
         logging.error(f"Error extracting boundary names from {boundary_file}: {e}")
         return []
     return names
+
 
 def _create_minimal_openfoam_case_structure(case_path: Path, solver_name: str = "fluentMeshToFoam", end_time: int = 1):
     """
@@ -107,11 +117,11 @@ def _create_minimal_openfoam_case_structure(case_path: Path, solver_name: str = 
     # Minimal controlDict content
     control_dict_content = f"""FoamFile
 {{
-    version       2.0;
-    format        ascii;
-    class         dictionary;
-    location      "system";
-    object        controlDict;
+    version         2.0;
+    format          ascii;
+    class           dictionary;
+    location        "system";
+    object          controlDict;
 }}
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -134,11 +144,11 @@ runTimeModifiable true;
 // ************************************************************************* //
 """
     (system_dir / "controlDict").write_text(control_dict_content)
-    logging.info(f"已在 {case_path} 创建最简 OpenFOAM 案例结构，controlDict 中 application 为 '{solver_name}', endTime 为 {end_time}。")
+    logging.info(
+        f"已在 {case_path} 创建最简 OpenFOAM 案例结构，controlDict 中 application 为 '{solver_name}', endTime 为 {end_time}。")
 
 
 # --- MCP Tools Definition ---
-
 
 
 ### `extract_pdf_text`
@@ -149,9 +159,10 @@ class PdfTextResult(TypedDict):
     message: str
     extracted_text: str
 
+
 @mcp.tool()
 def extract_pdf_text(
-    pdf_file_path: Path
+        pdf_file_path: Path
 ) -> PdfTextResult:
     """
     Extracts and cleans text content from a PDF file. This tool is the first step
@@ -194,10 +205,10 @@ def extract_pdf_text(
 
                 # Create filter function to crop page content
                 crop_filter = lambda obj: (
-                    obj["x0"] >= bbox[0] and
-                    obj["top"] >= bbox[1] and
-                    obj["x1"] <= bbox[2] and
-                    obj["bottom"] <= bbox[3]
+                        obj["x0"] >= bbox[0] and
+                        obj["top"] >= bbox[1] and
+                        obj["x1"] <= bbox[2] and
+                        obj["bottom"] <= bbox[3]
                 )
 
                 # Apply area filtering
@@ -216,11 +227,12 @@ def extract_pdf_text(
                 cleaned_text = _clean_text_for_pdf_extraction(text, page_number=i + 1)
                 if cleaned_text:
                     text_blocks.append(cleaned_text)
-                logging.debug(f"Extracted and cleaned text from page {i+1}.")
+                logging.debug(f"Extracted and cleaned text from page {i + 1}.")
 
         full_extracted_text = "\n".join(text_blocks)
-        if not full_extracted_text.strip(): # Check if extracted text is empty after stripping whitespace
-            logging.warning(f"No meaningful text extracted from {pdf_file_path}. The PDF might be image-based or heavily formatted.")
+        if not full_extracted_text.strip():  # Check if extracted text is empty after stripping whitespace
+            logging.warning(
+                f"No meaningful text extracted from {pdf_file_path}. The PDF might be image-based or heavily formatted.")
             return {
                 "status": "partial_success",
                 "message": "PDF processed, but no significant text content was extracted. It might be an image-only PDF.",
@@ -248,7 +260,6 @@ def extract_pdf_text(
         }
 
 
-
 ### `parse_simulation_conditions`
 
 class ParsedSimulationConditions(TypedDict):
@@ -259,16 +270,16 @@ class ParsedSimulationConditions(TypedDict):
     solver: Optional[str]
     turbulence_model: Optional[str]
     physical_model: Optional[str]
-    initial_conditions: Optional[Dict[str, Any]] # e.g., {"U": "(10 0 0)", "p": "0"}
-    boundary_conditions: Optional[Dict[str, Any]] # e.g., {"inlet": {"U": "fixedValue", "p": "zeroGradient"}}
-    dimensions: Optional[Dict[str, Any]] # e.g., {"x": "1m", "y": "0.1m"}
-    numerical_schemes: Optional[Dict[str, Any]] # e.g., {"divSchemes": {"div(phi,U)": "Gauss linearUpwindV"}}
-    control_parameters: Optional[Dict[str, Any]] # e.g., {"endTime": 100, "deltaT": 0.001}
+    initial_conditions: Optional[Dict[str, Any]]  # e.g., {"U": "(10 0 0)", "p": "0"}
+    boundary_conditions: Optional[Dict[str, Any]]  # e.g., {"inlet": {"U": "fixedValue", "p": "zeroGradient"}}
+    dimensions: Optional[Dict[str, Any]]  # e.g., {"x": "1m", "y": "0.1m"}
+    numerical_schemes: Optional[Dict[str, Any]]  # e.g., {"divSchemes": {"div(phi,U)": "Gauss linearUpwindV"}}
+    control_parameters: Optional[Dict[str, Any]]  # e.g., {"endTime": 100, "deltaT": 0.001}
 
 
 @mcp.tool()
 def parse_simulation_conditions(
-    llm_sim_conditions_json: Dict[str, Any] # <--- 关键修改点1：输入类型改为字典
+        llm_sim_conditions_json: Dict[str, Any]  # <--- 关键修改点1：输入类型改为字典
 ) -> ParsedSimulationConditions:
     """
     Parses a Python dictionary containing simulated conditions generated by a large language model and returns it in a structured format.
@@ -276,10 +287,10 @@ def parse_simulation_conditions(
 
     Args:
         llm_sim_conditions_json (Dict[str, Any]): A Python dictionary from an LLM containing simulation conditions.
-                                                  Expected to include keys such as 'case_description', 'solver',
-                                                  'turbulence_model', 'physical_model', 'initial_conditions',
-                                                  'boundary_conditions', 'dimensions', 'numerical_schemes',
-                                                  'control_parameters', etc.
+                                                 Expected to include keys such as 'case_description', 'solver',
+                                                 'turbulence_model', 'physical_model', 'initial_conditions',
+                                                 'boundary_conditions', 'dimensions', 'numerical_schemes',
+                                                 'control_parameters', etc.
 
     Returns:
         ParsedSimulationConditions: A dictionary containing the parsed status, messages, and extracted simulation conditions.
@@ -290,8 +301,9 @@ def parse_simulation_conditions(
 
         required_keys = ["case_description", "solver"]
         if not all(key in sim_conditions for key in required_keys):
-            logging.warning(f"LLM simulation conditions JSON missing some recommended keys. Raw input: {sim_conditions}")
-        
+            logging.warning(
+                f"LLM simulation conditions JSON missing some recommended keys. Raw input: {sim_conditions}")
+
         logging.info("Successfully parsed simulation conditions from LLM.")
         return {
             "status": "success",
@@ -307,10 +319,12 @@ def parse_simulation_conditions(
             "control_parameters": sim_conditions.get("control_parameters")
         }
     except json.JSONDecodeError as e:
-        logging.error(f"Invalid JSON format for LLM simulation conditions: {e}. Original: {llm_sim_conditions_json[:500]}...")
+        # This block might still be relevant if the LLM sometimes outputs a string that is not a dict
+        logging.error(
+            f"Invalid JSON format for LLM simulation conditions: {e}. Original: {str(llm_sim_conditions_json)[:500]}...")
         return {
             "status": "failure",
-            "message": f"Input LLM JSON is malformed: {e}. Original response snippet: {llm_sim_conditions_json[:500]}...",
+            "message": f"Input LLM JSON is malformed: {e}. Original response snippet: {str(llm_sim_conditions_json)[:500]}...",
             "case_description": "", "solver": None, "turbulence_model": None, "physical_model": None,
             "initial_conditions": None, "boundary_conditions": None, "dimensions": None,
             "numerical_schemes": None, "control_parameters": None
@@ -326,7 +340,6 @@ def parse_simulation_conditions(
         }
 
 
-
 ### `process_mesh_and_extract_boundaries`
 
 class MeshProcessResult(TypedDict):
@@ -336,13 +349,14 @@ class MeshProcessResult(TypedDict):
     case_output_path: Path
     boundary_names: List[str]
 
+
 @mcp.tool()
 def process_mesh_and_extract_boundaries(
-    msh_file_path: Path,
-    output_base_path: Path,
-    case_name: str,
-    initial_solver_name: str = "fluentMeshToFoam",
-    initial_end_time: int = 1
+        msh_file_path: Path,
+        output_base_path: Path,
+        case_name: str,
+        initial_solver_name: str = "fluentMeshToFoam",
+        initial_end_time: int = 1
 ) -> MeshProcessResult:
     """
     Converts a Fluent mesh file (.msh) to OpenFOAM format and extracts
@@ -354,13 +368,13 @@ def process_mesh_and_extract_boundaries(
         output_base_path (Path): The base directory where the OpenFOAM case will be created.
         case_name (str): The name of the OpenFOAM case directory to be created.
         initial_solver_name (str, optional): Initial 'application' field value in controlDict.
-                                            Defaults to "fluentMeshToFoam".
+                                             Defaults to "fluentMeshToFoam".
         initial_end_time (int, optional): Initial 'endTime' field value in controlDict. Defaults to 1.
 
     Returns:
         MeshProcessResult: A dictionary containing the processing status,
-                            a message, the path to the OpenFOAM case, and
-                            a list of extracted boundary names.
+                           a message, the path to the OpenFOAM case, and
+                           a list of extracted boundary names.
     """
     case_output_path = output_base_path / case_name
     original_cwd = os.getcwd()
@@ -396,7 +410,7 @@ def process_mesh_and_extract_boundaries(
                 "message": "OpenFOAM environment not initialized. OPENFOAM_PATH not found.",
                 "case_output_path": Path(""), "boundary_names": []
             }
-            
+
         _create_minimal_openfoam_case_structure(case_output_path, initial_solver_name, initial_end_time)
 
         os.chdir(case_output_path)
@@ -428,7 +442,8 @@ def process_mesh_and_extract_boundaries(
         boundary_names = _extract_boundary_names_from_polyMesh(case_output_path)
 
         if not boundary_names:
-            logging.warning("Mesh conversion successful, but no boundary names could be extracted. This might indicate an issue with the mesh or boundary file structure.")
+            logging.warning(
+                "Mesh conversion successful, but no boundary names could be extracted. This might indicate an issue with the mesh or boundary file structure.")
             return {
                 "status": "warning",
                 "message": "Mesh conversion successful, but no boundary names could be extracted. Please check the mesh file structure.",
@@ -462,7 +477,6 @@ def process_mesh_and_extract_boundaries(
             logging.info(f"Changed back to original directory: {original_cwd}")
 
 
-
 ### `retrieve_of_case_template`
 
 class OFCaseTemplateResult(TypedDict):
@@ -473,15 +487,16 @@ class OFCaseTemplateResult(TypedDict):
     template_files_content: Dict[str, str]
     all_filtered_alternatives: Dict[str, List[str]]
 
+
 @mcp.tool()
 def retrieve_of_case_template(
-    llm_chosen_template_case_name: str,
-    solver_name: str,
-    turbulence_model_name: Optional[str],
-    other_physics_model: Optional[str],
-    of_case_data: Dict[str, Any],
-    solver_req_path: Path,
-    turbulence_req_path: Path,
+        llm_chosen_template_case_name: str,
+        solver_name: str,
+        turbulence_model_name: Optional[str],
+        other_physics_model: Optional[str],
+        of_case_data: Dict[str, Any],
+        solver_req_path: Path,
+        turbulence_req_path: Path,
 ) -> OFCaseTemplateResult:
     """
     Retrieves the necessary OpenFOAM configuration files for a given solver, turbulence model,
@@ -489,7 +504,7 @@ def retrieve_of_case_template(
 
     Args:
         llm_chosen_template_case_name (str): The name of the reference OpenFOAM case
-                                            chosen by an LLM as the best template.
+                                             chosen by an LLM as the best template.
         solver_name (str): The OpenFOAM solver name (e.g., 'pimpleFoam').
         turbulence_model_name (Optional[str]): The turbulence model name (e.g., 'kOmegaSST').
         other_physics_model (Optional[str]): Additional physical model (e.g., 'Maxwell').
@@ -542,12 +557,15 @@ def retrieve_of_case_template(
         initial_required_files_set.add("constant/thermo.compressibleGasGRI")
         initial_required_files_set.add("constant/reactionsGRI")
 
-    compressible_solvers = ["acousticFoam", "overRhoPimpleDyMFoam", "overRhoSimpleFoam", "rhoCentralFoam", "rhoPimpleAdiabaticFoam", "rhoPimpleFoam", "rhoPorousSimpleFoam", "rhoSimpleFoam", "sonicDyMFoam", "sonicFoam", "sonicLiquidFoam"]
+    compressible_solvers = ["acousticFoam", "overRhoPimpleDyMFoam", "overRhoSimpleFoam", "rhoCentralFoam",
+                            "rhoPimpleAdiabaticFoam", "rhoPimpleFoam", "rhoPorousSimpleFoam", "rhoSimpleFoam",
+                            "sonicDyMFoam", "sonicFoam", "sonicLiquidFoam"]
     if solver_name in compressible_solvers and turbulence_model_name and turbulence_model_name != "laminar":
         initial_required_files_set.add("0/alphat")
 
     file_alternative: Dict[str, List[str]] = {}
-    file_necessary_system = ["system/fvSolution", "system/controlDict", "system/fvSchemes", "system/FOBilgerMixtureFraction"]
+    file_necessary_system = ["system/fvSolution", "system/controlDict", "system/fvSchemes",
+                             "system/FOBilgerMixtureFraction"]
 
     for key, value in of_case_data.items():
         case_solver = value.get("solver")
@@ -555,9 +573,11 @@ def retrieve_of_case_template(
         case_other_physical_model = value.get("other_physical_model")
 
         if (case_solver == solver_name and
-            (case_turbulence_model == turbulence_model_name or (turbulence_model_name is None and case_turbulence_model is None)) and
-            (case_other_physical_model == other_physics_model or (other_physics_model is None and case_other_physical_model is None))):
-            
+                (case_turbulence_model == turbulence_model_name or (
+                        turbulence_model_name is None and case_turbulence_model is None)) and
+                (case_other_physical_model == other_physics_model or (
+                        other_physics_model is None and case_other_physical_model is None))):
+
             file_filtered = []
             for file_path in value.get("configuration_files", {}).keys():
                 if file_path:
@@ -568,7 +588,7 @@ def retrieve_of_case_template(
                         file_filtered.append(file_path)
             case_name_only = key.split("/")[-1]
             file_alternative[case_name_only] = file_filtered
-    
+
     if not file_alternative:
         logging.warning("No strict matching reference case found. Falling back to matching by solver only.")
         for key, value in of_case_data.items():
@@ -586,7 +606,8 @@ def retrieve_of_case_template(
                 file_alternative[case_name_only] = file_filtered
 
     if not file_alternative:
-        logging.error(f"No suitable reference cases found for solver '{solver_name}', turbulence '{turbulence_model_name}', other model '{other_physics_model}'.")
+        logging.error(
+            f"No suitable reference cases found for solver '{solver_name}', turbulence '{turbulence_model_name}', other model '{other_physics_model}'.")
         return {
             "status": "failure",
             "message": "No suitable reference OpenFOAM cases found in the database.",
@@ -594,9 +615,10 @@ def retrieve_of_case_template(
             "template_files_content": {},
             "all_filtered_alternatives": file_alternative
         }
-    
+
     if llm_chosen_template_case_name not in file_alternative:
-        logging.warning(f"LLM chosen template '{llm_chosen_template_case_name}' not found in filtered alternatives. Attempting to use a fallback from available alternatives.")
+        logging.warning(
+            f"LLM chosen template '{llm_chosen_template_case_name}' not found in filtered alternatives. Attempting to use a fallback from available alternatives.")
         if file_alternative:
             selected_case_name = list(file_alternative.keys())[0]
             logging.warning(f"Using '{selected_case_name}' as a fallback template case.")
@@ -618,18 +640,21 @@ def retrieve_of_case_template(
         if key.endswith(f"/{selected_case_name}"):
             found_case_data = value
             break
-    
+
     if found_case_data:
         for file_rel_path in file_alternative.get(selected_case_name, []):
             if file_rel_path in found_case_data.get("configuration_files", {}):
                 template_files_content[file_rel_path] = found_case_data["configuration_files"][file_rel_path]
             else:
-                logging.warning(f"File '{file_rel_path}' specified for '{selected_case_name}' not found in its configuration_files data.")
-        
+                logging.warning(
+                    f"File '{file_rel_path}' specified for '{selected_case_name}' not found in its configuration_files data.")
+
         for required_file in initial_required_files_set:
             if required_file not in template_files_content:
-                logging.warning(f"Required file '{required_file}' not found in the selected template '{selected_case_name}'. Agent needs to address this.")
-                template_files_content[required_file] = "// Placeholder or missing content. Agent needs to generate or find this."
+                logging.warning(
+                    f"Required file '{required_file}' not found in the selected template '{selected_case_name}'. Agent needs to address this.")
+                template_files_content[
+                    required_file] = "// Placeholder or missing content. Agent needs to generate or find this."
 
     else:
         logging.error(f"Could not find full data for selected case '{selected_case_name}' in OF_case_data.")
@@ -651,7 +676,6 @@ def retrieve_of_case_template(
     }
 
 
-
 ### `manage_openfoam_case_files` (整合工具)
 
 class ManagedFileResult(TypedDict):
@@ -661,21 +685,23 @@ class ManagedFileResult(TypedDict):
     file_content: Optional[str]
     # For write/update operations, content will be None
 
+
 class ManageFilesResult(TypedDict):
     """Result structure for manage_openfoam_case_files tool (for write/apply operations)."""
     status: str
     message: str
     case_path: Path
-    modified_files_count: Optional[int] # Number of files written/updated
+    modified_files_count: Optional[int]  # Number of files written/updated
+
 
 @mcp.tool()
 def manage_openfoam_case_files(
-    case_path: Path,
-    action: Literal["read", "write", "update"], # Define allowed actions
-    file_rel_path: Optional[str] = None, # For read/update on single file
-    content: Optional[str] = None,       # For write/update on single file
-    llm_modifications_json: Optional[str] = None # For batch write/update
-) -> Any: # Returns ManagedFileResult or ManageFilesResult based on action
+        case_path: Path,
+        action: Literal["read", "write", "update"],  # Define allowed actions
+        file_rel_path: Optional[str] = None,  # For read/update on single file
+        content: Optional[str] = None,  # For write/update on single file
+        llm_modifications_json: Optional[str] = None  # For batch write/update
+) -> Union[ManagedFileResult, ManageFilesResult]:  # Returns ManagedFileResult or ManageFilesResult based on action
     """
     Manages OpenFOAM case files by performing read, write, or update operations.
     This tool consolidates `generate_and_write_openfoam_files`, `read_openfoam_case_file`,
@@ -744,13 +770,14 @@ def manage_openfoam_case_files(
             elif file_rel_path and content is not None:
                 modifications[file_rel_path] = content
             else:
-                logging.error("Either llm_modifications_json or (file_rel_path and content) must be provided for 'write'/'update' action.")
+                logging.error(
+                    "Either llm_modifications_json or (file_rel_path and content) must be provided for 'write'/'update' action.")
                 return {
                     "status": "failure",
                     "message": "Missing parameters for file write/update operation.",
                     "case_path": case_path, "modified_files_count": 0
                 }
-            
+
             modified_count = 0
             for rel_path, new_content in modifications.items():
                 full_file_path = case_path / rel_path
@@ -759,14 +786,14 @@ def manage_openfoam_case_files(
                     f.write(new_content)
                 logging.debug(f"Wrote/Updated file: {full_file_path}")
                 modified_count += 1
-            
+
             if modified_count == 0 and modifications:
-                 logging.warning("LLM provided modifications, but no changes were successfully applied.")
-                 return {
-                     "status": "warning",
-                     "message": "LLM provided modifications, but no files were successfully modified. Check paths/permissions.",
-                     "case_path": case_path, "modified_files_count": 0
-                 }
+                logging.warning("LLM provided modifications, but no changes were successfully applied.")
+                return {
+                    "status": "warning",
+                    "message": "LLM provided modifications, but no files were successfully modified. Check paths/permissions.",
+                    "case_path": case_path, "modified_files_count": 0
+                }
 
             logging.info(f"Successfully {action}d {modified_count} file(s) in {case_path}.")
             return {
@@ -785,7 +812,8 @@ def manage_openfoam_case_files(
             }
 
     except json.JSONDecodeError as e:
-        logging.error(f"Invalid JSON format for modifications: {e}. Original snippet: {llm_modifications_json[:500] if llm_modifications_json else 'N/A'}...")
+        logging.error(
+            f"Invalid JSON format for modifications: {e}. Original snippet: {llm_modifications_json[:500] if llm_modifications_json else 'N/A'}...")
         return {
             "status": "failure",
             "message": f"Input JSON for modifications is malformed: {e}.",
@@ -800,7 +828,6 @@ def manage_openfoam_case_files(
         }
 
 
-
 ### `run_openfoam_simulation`
 
 class SimulationResult(TypedDict):
@@ -811,11 +838,12 @@ class SimulationResult(TypedDict):
     log_file_path: Path
     full_log_content: str
 
+
 @mcp.tool()
 def run_openfoam_simulation(
-    case_path: Path,
-    solver_name: str,
-    max_runtime_seconds: int = 1800
+        case_path: Path,
+        solver_name: str,
+        max_runtime_seconds: int = 1800
 ) -> SimulationResult:
     """
     Executes an OpenFOAM solver for a specified case and captures the run log.
@@ -875,7 +903,7 @@ def run_openfoam_simulation(
                 bufsize=1
             )
             for line in process.stdout:
-                sys.stdout.write(line)
+                sys.stdout.write(line) # Also print to console for real-time feedback
                 log_f.write(line)
                 full_log_content += line
             process.stdout.close()
@@ -889,7 +917,8 @@ def run_openfoam_simulation(
                 "case_path": case_path, "log_file_path": log_file_path, "full_log_content": full_log_content
             }
         else:
-            logging.error(f"Solver '{solver_name}' failed with exit code {process.returncode}. Log saved to {log_file_path}.")
+            logging.error(
+                f"Solver '{solver_name}' failed with exit code {process.returncode}. Log saved to {log_file_path}.")
             return {
                 "status": "failure",
                 "message": f"Solver '{solver_name}' failed, exit code: {process.returncode}, log saved to {log_file_path}.",
@@ -918,7 +947,6 @@ def run_openfoam_simulation(
             logging.info(f"Changed back to original directory: {original_cwd}")
 
 
-
 ### `get_openfoam_case_file_structure`
 
 class FileStructureResult(TypedDict):
@@ -927,10 +955,11 @@ class FileStructureResult(TypedDict):
     message: str
     file_structure: Dict[str, Any]
 
+
 @mcp.tool()
 def get_openfoam_case_file_structure(
-    case_path: Path,
-    max_depth: int = 3
+        case_path: Path,
+        max_depth: int = 3
 ) -> FileStructureResult:
     """
     Generates a dictionary representing the file and directory structure
@@ -979,6 +1008,247 @@ def get_openfoam_case_file_structure(
     }
 
 
+### `post_process_openfoam_results` (新增工具)
+
+class PostProcessResult(TypedDict):
+    """Result structure for PostProcessOpenFOAMResults tool."""
+    status: str
+    message: str
+    output_image_path: Path
+    field_visualized: str
+    time_step: str
+
+
+@mcp.tool()
+def post_process_openfoam_results(
+        case_path: Path,
+        output_image_path: Path,
+        field_to_visualize: Literal["U"] = "U", # 明确可以可视化的场，目前只有U
+        time_step: str = "latest"
+) -> PostProcessResult:
+    """
+    Performs post-processing on OpenFOAM simulation results to generate visualizations.
+    This tool specifically converts OpenFOAM results to VTK format using `foamToVTK`
+    and then visualizes a specified field (e.g., velocity magnitude) using PyVista,
+    saving the output as an image.
+
+    Args:
+        case_path (Path): The path to the OpenFOAM case directory where results are located.
+        output_image_path (Path): The desired full path for the output image file (e.g., Path("./images/velocity_magnitude.png")).
+        field_to_visualize (Literal["U"]): The CFD field to visualize. Currently, only "U" (velocity) is supported.
+        time_step (str): The time step to visualize. Can be "latest" (default) or a specific numeric time step string (e.g., "1000").
+
+    Returns:
+        PostProcessResult: A dictionary containing the post-processing status, a message,
+                           the path to the generated image, the field visualized, and the time step.
+    """
+    if not case_path.is_dir():
+        logging.error(f"Case path '{case_path}' does not exist or is not a directory.")
+        return {
+            "status": "failure",
+            "message": f"Case path '{case_path}' does not exist or is not a directory. Cannot perform post-processing.",
+            "output_image_path": Path(""), "field_visualized": field_to_visualize, "time_step": time_step
+        }
+
+    logging.info(f"Starting post-processing for case: {case_path}")
+    logging.info(f"Target output image: {output_image_path}")
+
+    # 1. 运行 foamToVTK 将 OpenFOAM 结果转换为 VTK 格式
+    logging.info("Running foamToVTK...")
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(case_path) # Change to case directory to run foamToVTK
+        openfoam_path = os.environ.get("OPENFOAM_PATH")
+        if not openfoam_path:
+            logging.error("OPENFOAM_PATH environment variable is not set.")
+            return {
+                "status": "failure",
+                "message": "OpenFOAM environment not initialized. OPENFOAM_PATH not found.",
+                "output_image_path": Path(""), "field_visualized": field_to_visualize, "time_step": time_step
+            }
+
+        command = f'source {openfoam_path}/etc/bashrc && foamToVTK'
+        if time_step == "latest":
+            command += " -latestTime"
+        else:
+            command += f" -time {time_step}"
+
+        logging.info(f"Executing foamToVTK command: {command}")
+        
+        process = subprocess.run(
+            command,
+            shell=True,
+            executable="/usr/bin/bash",
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=300 # Shorter timeout for foamToVTK
+        )
+
+        if process.returncode != 0:
+            logging.error(f"foamToVTK failed. Stderr: {process.stderr}\nStdout: {process.stdout}")
+            return {
+                "status": "failure",
+                "message": f"foamToVTK failed: {process.stderr.strip()}",
+                "output_image_path": Path(""), "field_visualized": field_to_visualize, "time_step": time_step
+            }
+        logging.info("foamToVTK completed successfully.")
+        logging.debug(f"foamToVTK Stdout: {process.stdout}")
+
+    except subprocess.TimeoutExpired:
+        logging.error(f"foamToVTK timed out after {300} seconds for {case_path}.")
+        return {
+            "status": "failure",
+            "message": f"foamToVTK timed out ({300} seconds).",
+            "output_image_path": Path(""), "field_visualized": field_to_visualize, "time_step": time_step
+        }
+    except Exception as e:
+        logging.exception(f"An unexpected error occurred during foamToVTK execution for {case_path}.")
+        return {
+            "status": "failure",
+            "message": f"An unknown error occurred during foamToVTK: {e}",
+            "output_image_path": Path(""), "field_visualized": field_to_visualize, "time_step": time_step
+        }
+    finally:
+        if os.getcwd() != original_cwd:
+            os.chdir(original_cwd) # Always change back
+            logging.info(f"Changed back to original directory: {original_cwd}")
+
+
+    # 2. 确定 VTK 文件的路径
+    vtk_output_dir = case_path / "VTK"
+    case_name = case_path.name
+
+    target_vtk_file = None
+    if time_step == "latest":
+        vtm_files_found = []
+        for f in vtk_output_dir.iterdir():
+            if f.is_file() and f.suffix == '.vtm':
+                match_case_time_vtm = re.match(rf"^{re.escape(case_name)}_(\d+\.?\d*)\.vtm$", f.name)
+                if match_case_time_vtm:
+                    vtm_files_found.append((float(match_case_time_vtm.group(1)), f))
+        
+        if vtm_files_found:
+            vtm_files_found.sort(key=lambda x: x[0], reverse=True)
+            target_vtk_file = vtm_files_found[0][1]
+            logging.info(f"Found latest VTK file: {target_vtk_file.name}")
+        else:
+            series_file = vtk_output_dir / f"{case_name}.vtm.series"
+            if series_file.is_file():
+                target_vtk_file = series_file
+                logging.info(f"Found VTK series file: {target_vtk_file.name}")
+            else:
+                logging.error(f"No VTK files (.vtm or .vtm.series) found in '{vtk_output_dir}'.")
+                return {
+                    "status": "failure",
+                    "message": f"No VTK files (.vtm or .vtm.series) found in '{vtk_output_dir}'.",
+                    "output_image_path": Path(""), "field_visualized": field_to_visualize, "time_step": time_step
+                }
+    else:
+        target_vtk_file = vtk_output_dir / f"{case_name}_{time_step}.vtm"
+        if not target_vtk_file.is_file():
+            logging.error(f"VTK file '{target_vtk_file}' for specified time step '{time_step}' does not exist.")
+            return {
+                "status": "failure",
+                "message": f"VTK file '{target_vtk_file}' for specified time step '{time_step}' does not exist.",
+                "output_image_path": Path(""), "field_visualized": field_to_visualize, "time_step": time_step
+            }
+
+    logging.info(f"Loading VTK file: {target_vtk_file}")
+
+    # 3. 使用 PyVista 加载数据并处理
+    try:
+        full_data_set = pv.read(target_vtk_file)
+    except Exception as e:
+        logging.error(f"Failed to read VTK file with PyVista: {e}")
+        return {
+            "status": "failure",
+            "message": f"Failed to read VTK file with PyVista: {e}",
+            "output_image_path": Path(""), "field_visualized": field_to_visualize, "time_step": time_step
+        }
+
+    mesh = None
+    if isinstance(full_data_set, pv.MultiBlock):
+        for block in full_data_set:
+            # Try to find the actual mesh data, typically the largest block or "internal"
+            if block.n_points > 0: # Ensure it's not an empty block
+                mesh = block
+                if 'internal' in str(block).lower() or 'patch' not in str(block).lower(): # Prefer internal mesh over boundary patches
+                    break
+        if mesh is None:
+            logging.error("No valid internal mesh data found in MultiBlock dataset.")
+            return {
+                "status": "failure",
+                "message": "No valid internal mesh data found in MultiBlock dataset for visualization.",
+                "output_image_path": Path(""), "field_visualized": field_to_visualize, "time_step": time_step
+            }
+    elif isinstance(full_data_set, pv.DataSet):
+        mesh = full_data_set
+    else:
+        logging.error(f"PyVista loaded an unknown dataset type: {type(full_data_set)}")
+        return {
+            "status": "failure",
+            "message": f"PyVista loaded an unknown dataset type: {type(full_data_set)}. Cannot visualize.",
+            "output_image_path": Path(""), "field_visualized": field_to_visualize, "time_step": time_step
+        }
+
+    # 4. 提取并处理指定的场
+    if field_to_visualize == "U":
+        if "U" not in mesh.point_data:
+            logging.error(f"Field '{field_to_visualize}' not found in VTK data. Available fields: {list(mesh.point_data.keys())}")
+            return {
+                "status": "failure",
+                "message": f"Field '{field_to_visualize}' not found in VTK data. Ensure foamToVTK exported it.",
+                "output_image_path": Path(""), "field_visualized": field_to_visualize, "time_step": time_step
+            }
+        velocity_u = mesh.point_data["U"]
+        velocity_magnitude = np.linalg.norm(velocity_u, axis=1)
+        mesh["VelocityMagnitude"] = velocity_magnitude
+        scalars_field = "VelocityMagnitude"
+        scalar_bar_title = "Velocity Magnitude"
+        logging.info("Calculated velocity magnitude for visualization.")
+    else:
+        logging.error(f"Unsupported field for visualization: '{field_to_visualize}'. Only 'U' is currently supported.")
+        return {
+            "status": "failure",
+            "message": f"Unsupported field for visualization: '{field_to_visualize}'. Only 'U' is currently supported.",
+            "output_image_path": Path(""), "field_visualized": field_to_visualize, "time_step": time_step
+        }
+
+    # 5. 可视化并保存图片
+    logging.info("Generating visualization image...")
+    
+    # Ensure output directory exists
+    output_image_path.parent.mkdir(parents=True, exist_ok=True) 
+
+    plotter = pv.Plotter(off_screen=True)
+    
+    plotter.add_mesh(mesh, scalars=scalars_field, cmap="viridis", show_scalar_bar=True,
+                     scalar_bar_args={'title': scalar_bar_title})
+    
+    plotter.view_xy() # Suitable for 2D cases or 3D cases with symmetry in XY plane
+    plotter.camera.zoom(1.2) # Slightly zoom in
+
+    try:
+        plotter.screenshot(output_image_path, transparent_background=False, scale=2) # scale=2 for better quality
+        logging.info(f"Image successfully saved to: {output_image_path}")
+        return {
+            "status": "success",
+            "message": "Visualization image generated successfully.",
+            "output_image_path": output_image_path,
+            "field_visualized": field_to_visualize,
+            "time_step": time_step
+        }
+    except Exception as e:
+        logging.error(f"Failed to save screenshot to {output_image_path}: {e}")
+        return {
+            "status": "failure",
+            "message": f"Failed to save visualization image: {e}",
+            "output_image_path": Path(""), "field_visualized": field_to_visualize, "time_step": time_step
+        }
+    finally:
+        plotter.close() # Always close the plotter
+
 
 ### `perform_web_search`
 
@@ -989,11 +1259,12 @@ class WebSearchResult(TypedDict):
     search_results: List[Dict[str, str]]
     scraped_content: List[Dict[str, str]]
 
+
 @mcp.tool()
 def perform_web_search(
-    query: str,
-    num_results: int = 3,
-    scrape_pages: bool = True
+        query: str,
+        num_results: int = 3,
+        scrape_pages: bool = True
 ) -> WebSearchResult:
     """
     Performs a web search and optionally scrapes the content of the top results.
@@ -1011,13 +1282,16 @@ def perform_web_search(
                          optionally scraped content (title, url, full_text).
     """
     logging.info(f"Performing simulated web search for: '{query}'")
-    
+
     simulated_results = [
-        {"title": f"Simulated Result 1 for {query}", "url": "https://simulated.com/result1", "snippet": "This is a dummy snippet for the first result."},
-        {"title": f"Simulated Result 2 for {query}", "url": "https://simulated.com/result2", "snippet": "Another snippet demonstrating a search result."},
-        {"title": f"Simulated Result 3 for {query}", "url": "https://simulated.com/result3", "snippet": "A third result that might contain useful info."}
+        {"title": f"Simulated Result 1 for {query}", "url": "https://simulated.com/result1",
+         "snippet": "This is a dummy snippet for the first result."},
+        {"title": f"Simulated Result 2 for {query}", "url": "https://simulated.com/result2",
+         "snippet": "Another snippet demonstrating a search result."},
+        {"title": f"Simulated Result 3 for {query}", "url": "https://simulated.com/result3",
+         "snippet": "A third result that might contain useful info."}
     ]
-    
+
     simulated_scraped_content = []
     if scrape_pages:
         for i, res in enumerate(simulated_results):
